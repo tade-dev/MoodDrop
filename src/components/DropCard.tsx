@@ -28,7 +28,7 @@ interface DropCardProps {
     };
   };
   votes?: Array<{
-    vote_type: 'fire' | 'heartbreak' | 'chill';
+    vote_type: 'fire' | 'down' | 'chill';
     user_id: string;
   }>;
   onVote?: () => void;
@@ -50,7 +50,7 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
     return null;
   };
 
-  const handleVote = async (voteType: 'fire' | 'heartbreak' | 'chill') => {
+  const handleVote = async (voteType: 'fire' | 'down' | 'chill') => {
     if (!user) {
       toast({
         title: "Sign in required",
@@ -104,11 +104,11 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
     }
   };
 
-  const getVoteCount = (voteType: 'fire' | 'heartbreak' | 'chill') => {
+  const getVoteCount = (voteType: 'fire' | 'down' | 'chill') => {
     return votes.filter(v => v.vote_type === voteType).length;
   };
 
-  const hasUserVoted = (voteType: 'fire' | 'heartbreak' | 'chill') => {
+  const hasUserVoted = (voteType: 'fire' | 'down' | 'chill') => {
     return user && votes.some(v => v.user_id === user.id && v.vote_type === voteType);
   };
 
@@ -176,14 +176,14 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleVote('heartbreak')}
+              onClick={() => handleVote('down')}
               disabled={isVoting}
               className={`text-red-400 hover:text-red-300 hover:bg-red-400/10 ${
-                hasUserVoted('heartbreak') ? 'bg-red-400/20' : ''
+                hasUserVoted('down') ? 'bg-red-400/20' : ''
               }`}
             >
               <Heart className="w-4 h-4 mr-1" />
-              {getVoteCount('heartbreak')}
+              {getVoteCount('down')}
             </Button>
             
             <Button
