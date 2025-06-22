@@ -1,36 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, X, Music, Disc, Headphones, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Music, MapPin, Sparkles, AlertCircle, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
-import { validateSpotifyUrl, getDropTypeFromSpotifyUrl } from '@/utils/spotifyHelpers';
-
-interface Mood {
-  id: string;
-  name: string;
-  emoji: string;
-}
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { getSpotifyTrackInfo } from '@/utils/spotifyHelpers';
+import GoPremiumButton from '@/components/GoPremiumButton';
 
 const CreateDrop = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  
-  const [moods, setMoods] = useState<Mood[]>([]);
-  const [selectedMoodIds, setSelectedMoodIds] = useState<string[]>(
-    searchParams.get('mood') ? [searchParams.get('mood')!] : []
-  );
+  const { isPremium } = useSubscription();
   const [spotifyUrl, setSpotifyUrl] = useState('');
-  const [songTitle, setSongTitle] = useState('');
-  const [artistName, setArtistName] = useState('');
   const [caption, setCaption] = useState('');
-  const [dropType, setDropType] = useState<'song' | 'album' | 'playlist'>('song');
-  const [urlError, setUrlError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [selectedMood, setSelectedMood] = useState('');
+  const [location, setLocation] = useState('');
+  const [moods, setMoods] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canCreateDrop, setCanCreateDrop] = useState(true);
+  const [todayDropCount, setTodayDropCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -39,324 +35,244 @@ const CreateDrop = () => {
     }
     
     fetchMoods();
+    checkDropLimit();
   }, [user, navigate]);
 
-  // Auto-detect drop type from Spotify URL
-  useEffect(() => {
-    if (spotifyUrl) {
-      const detectedType = getDropTypeFromSpotifyUrl(spotifyUrl) as 'song' | 'album' | 'playlist';
-      setDropType(detectedType);
+  const checkDropLimit = async () => {
+    try {
+      const { data, error } = await supabase.rpc('can_user_create_drop');
+      if (error) throw error;
+      
+      setCanCreateDrop(data);
+      
+      // Get today's drop count for display
+      const { data: dropData } = await supabase
+        .from('daily_drops')
+        .select('drop_count')
+        .eq('user_id', user.id)
+        .eq('drop_date', new Date().toISOString().split('T')[0])
+        .single();
+      
+      setTodayDropCount(dropData?.drop_count || 0);
+    } catch (error) {
+      console.error('Error checking drop limit:', error);
     }
-  }, [spotifyUrl]);
+  };
 
   const fetchMoods = async () => {
     try {
-      const { data, error } = await supabase
-        .from('moods')
-        .select('*')
-        .order('created_at', { ascending: true });
-
+      let query = supabase.from('moods').select('*');
+      
+      // Non-premium users can only see public moods
+      if (!isPremium) {
+        query = query.or('is_custom.eq.false,and(is_custom.eq.true,created_by.eq.' + user.id + ')');
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: true });
+      
       if (error) throw error;
       setMoods(data || []);
     } catch (error) {
       console.error('Error fetching moods:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load moods",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleSpotifyUrlChange = (url: string) => {
-    setSpotifyUrl(url);
-    setUrlError('');
-    
-    if (url && url.length > 10) {
-      const validation = validateSpotifyUrl(url);
-      if (!validation.isValid) {
-        setUrlError(validation.error || 'Invalid Spotify URL');
-      }
-    }
-  };
-
-  const toggleMoodSelection = (moodId: string) => {
-    setSelectedMoodIds(prev => 
-      prev.includes(moodId)
-        ? prev.filter(id => id !== moodId)
-        : [...prev, moodId]
-    );
-  };
-
-  const removeMoodSelection = (moodId: string) => {
-    setSelectedMoodIds(prev => prev.filter(id => id !== moodId));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!user) {
+    if (!canCreateDrop && !isPremium) {
       toast({
-        title: "Authentication required",
-        description: "Please sign in to create drops",
+        title: "Daily limit reached",
+        description: "Free users can create 3 drops per day. Upgrade to Premium for unlimited drops!",
         variant: "destructive"
       });
       return;
     }
 
-    if (selectedMoodIds.length === 0) {
-      toast({
-        title: "Select at least one mood",
-        description: "Please choose at least one mood for your drop",
-        variant: "destructive"
-      });
-      return;
-    }
+    setIsSubmitting(true);
 
-    const validation = validateSpotifyUrl(spotifyUrl);
-    if (!validation.isValid) {
-      setUrlError(validation.error || 'Invalid Spotify URL');
-      return;
-    }
-
-    setLoading(true);
-    
     try {
-      // Create drops for each selected mood
-      const dropPromises = selectedMoodIds.map(moodId => 
-        supabase
-          .from('drops')
-          .insert({
-            user_id: user.id,
-            mood_id: moodId,
-            spotify_url: spotifyUrl,
-            song_title: songTitle,
-            artist_name: artistName,
-            caption: caption || null,
-            drop_type: dropType
-          })
-      );
+      const trackInfo = getSpotifyTrackInfo(spotifyUrl);
+      if (!trackInfo.isValid) {
+        throw new Error('Please enter a valid Spotify URL');
+      }
 
-      const results = await Promise.all(dropPromises);
-      const errors = results.filter(result => result.error);
+      const { error } = await supabase
+        .from('drops')
+        .insert({
+          user_id: user.id,
+          spotify_url: spotifyUrl,
+          artist_name: trackInfo.artist || 'Unknown Artist',
+          song_title: trackInfo.title || 'Unknown Track',
+          caption: caption.trim() || null,
+          mood_id: selectedMood,
+          location_name: location.trim() || null,
+          drop_type: trackInfo.type || 'song'
+        });
 
-      if (errors.length > 0) {
-        throw new Error('Some drops failed to create');
+      if (error) throw error;
+
+      // Increment daily drop count for non-premium users
+      if (!isPremium) {
+        await supabase.rpc('increment_daily_drop_count');
       }
 
       toast({
-        title: "Drops created! 🎵",
-        description: `Your musical vibe has been shared across ${selectedMoodIds.length} moods`
+        title: "Drop created! 🎵",
+        description: "Your musical vibe has been shared with the world"
       });
-      
+
       navigate('/home');
     } catch (error) {
-      console.error('Error creating drops:', error);
+      console.error('Error creating drop:', error);
       toast({
-        title: "Error creating drops",
-        description: "Please try again",
+        title: "Error",
+        description: error.message || "Failed to create drop",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const getSelectedMoods = () => {
-    return moods.filter(mood => selectedMoodIds.includes(mood.id));
-  };
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You must be signed in to create a drop.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute top-60 right-32 w-32 h-32 bg-pink-500/15 rounded-full blur-2xl animate-float-delayed" />
-        <div className="absolute bottom-40 left-1/4 w-48 h-48 bg-blue-500/8 rounded-full blur-3xl animate-float-slow" />
-        <div className="absolute top-1/3 right-1/5 w-24 h-24 bg-indigo-500/12 rounded-full blur-2xl animate-float" />
-      </div>
+    <div className="min-h-screen p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+            Drop Your Vibe 🎵
+          </h1>
+          <p className="text-gray-300 text-lg">
+            Share the music that matches your mood
+          </p>
+        </div>
 
-      <div className="relative z-10 pt-20 pb-8">
-        <div className="max-w-3xl mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex items-center mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/home')}
-              className="text-white hover:text-purple-300 transition-colors duration-300"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Home
-            </Button>
-          </div>
-
-          <div className="text-center mb-8 animate-fade-in">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
-              Create a Drop
-            </h1>
-            <p className="text-gray-300 text-lg">Share your musical vibe with the world 🎵</p>
-          </div>
-
-          <Card className="bg-black/40 backdrop-blur-lg border-white/10 p-8 animate-fade-in">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Drop Type Selection */}
-              <div className="animate-fade-in">
-                <Label className="block text-sm font-medium text-gray-300 mb-4">
-                  Drop Type
-                </Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: 'song', icon: Music, label: 'Song' },
-                    { value: 'album', icon: Disc, label: 'Album' },
-                    { value: 'playlist', icon: Headphones, label: 'Playlist' }
-                  ].map(({ value, icon: Icon, label }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setDropType(value as 'song' | 'album' | 'playlist')}
-                      className={`p-4 rounded-xl text-center transition-all duration-300 hover:scale-105 ${
-                        dropType === value
-                          ? 'bg-purple-600/50 border-2 border-purple-400 shadow-lg shadow-purple-500/25'
-                          : 'bg-white/10 border-2 border-transparent hover:bg-white/20 hover:border-white/30'
-                      }`}
-                    >
-                      <Icon className="w-8 h-8 mx-auto mb-2 text-white" />
-                      <span className="text-white text-sm font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
+        {/* Drop Limit Warning for Free Users */}
+        {!isPremium && (
+          <Alert className="mb-6 bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-amber-400/30">
+            <Crown className="h-4 w-4 text-amber-400" />
+            <AlertDescription className="text-amber-200">
+              <div className="flex items-center justify-between">
+                <span>
+                  Daily drops: {todayDropCount}/3 {!canCreateDrop && '(Limit reached)'}
+                </span>
+                <GoPremiumButton size="sm" variant="minimal" />
               </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
-              {/* Selected Moods Display */}
-              {selectedMoodIds.length > 0 && (
-                <div className="animate-fade-in">
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Selected Moods ({selectedMoodIds.length})
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {getSelectedMoods().map((mood) => (
-                      <div
-                        key={mood.id}
-                        className="flex items-center space-x-2 bg-purple-600/30 border border-purple-400/50 rounded-full px-3 py-1 animate-scale-in"
-                      >
-                        <span className="text-lg">{mood.emoji}</span>
-                        <span className="text-white text-sm font-medium">{mood.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeMoodSelection(mood.id)}
-                          className="text-gray-400 hover:text-white transition-colors duration-200"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        {/* Main Form */}
+        <Card className="bg-black/40 backdrop-blur-lg border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-2">
+              <Plus className="w-5 h-5" />
+              <span>Create New Drop</span>
+              {isPremium && (
+                <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
               )}
-
-              {/* Mood Selection */}
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-gray-300 mb-4">
-                  Choose Moods (Select multiple)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-1">
-                  {moods.map((mood) => (
-                    <button
-                      key={mood.id}
-                      type="button"
-                      onClick={() => toggleMoodSelection(mood.id)}
-                      className={`p-4 rounded-xl text-left transition-all duration-300 hover:scale-105 ${
-                        selectedMoodIds.includes(mood.id)
-                          ? 'bg-purple-600/50 border-2 border-purple-400 shadow-lg shadow-purple-500/25'
-                          : 'bg-white/10 border-2 border-transparent hover:bg-white/20 hover:border-white/30'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-3xl">{mood.emoji}</span>
-                        <span className="text-white text-sm font-medium leading-tight">{mood.name}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Spotify URL with validation */}
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Spotify URL
-                </label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    value={spotifyUrl}
-                    onChange={(e) => handleSpotifyUrlChange(e.target.value)}
-                    className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 ${
-                      urlError ? 'border-red-400 focus:ring-red-500' : 'border-white/20'
-                    }`}
-                    placeholder="https://open.spotify.com/track/..."
-                    required
-                  />
-                  {urlError && (
-                    <div className="flex items-center mt-2 text-red-400 text-sm">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {urlError}
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-400 text-xs mt-1">
-                  Paste a Spotify track, playlist, or album link
-                </p>
-              </div>
-
-              {/* Song Title */}
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {dropType === 'playlist' ? 'Playlist Title' : dropType === 'album' ? 'Album Title' : 'Song Title'}
-                </label>
-                <input
-                  type="text"
-                  value={songTitle}
-                  onChange={(e) => setSongTitle(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300"
-                  placeholder={`Enter the ${dropType} title`}
-                  required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              <div>
+                <Input
+                  type="url"
+                  placeholder="Enter Spotify URL"
+                  value={spotifyUrl}
+                  onChange={(e) => setSpotifyUrl(e.target.value)}
+                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
                 />
               </div>
-
-              {/* Artist Name */}
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Artist/Creator
-                </label>
-                <input
-                  type="text"
-                  value={artistName}
-                  onChange={(e) => setArtistName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300"
-                  placeholder="Enter the artist or creator name"
-                  required
-                />
-              </div>
-
-              {/* Caption */}
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Caption (Optional)
-                </label>
-                <textarea
+              
+              <div>
+                <Textarea
+                  placeholder="Add a caption..."
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none transition-all duration-300"
-                  placeholder="Add a caption to your drop..."
-                  rows={3}
+                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500 resize-none"
                 />
               </div>
-
-              <Button
-                type="submit"
-                disabled={loading || selectedMoodIds.length === 0 || !!urlError}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed animate-fade-in"
-              >
-                {loading ? 'Creating Drops...' : `Create Drop${selectedMoodIds.length > 1 ? 's' : ''} 🎵`}
-              </Button>
+              
+              <div>
+                <Select onValueChange={setSelectedMood}>
+                  <SelectTrigger className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 w-full justify-between">
+                    <SelectValue placeholder="Select a mood" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/80 border-white/20 text-white">
+                    {moods.map((mood) => (
+                      <SelectItem key={mood.id} value={mood.id}>
+                        {mood.emoji} {mood.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Input
+                  type="text"
+                  placeholder="Add location (optional)"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
+                />
+              </div>
+              
+              <div className="flex justify-between items-center pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/home')}
+                  className="border-white/20 text-gray-300 hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !spotifyUrl || !selectedMood || (!canCreateDrop && !isPremium)}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Drop It! 🎵
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

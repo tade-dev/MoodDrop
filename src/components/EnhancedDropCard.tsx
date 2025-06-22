@@ -4,11 +4,13 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, Flame, Moon, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
 import FollowButton from './FollowButton';
 import BookmarkButton from './BookmarkButton';
+import PremiumGlow from './PremiumGlow';
 
 interface EnhancedDropCardProps {
   drop: {
@@ -39,11 +41,13 @@ interface EnhancedDropCardProps {
 
 const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) => {
   const { user } = useAuth();
+  const { isPremium } = useSubscription();
   const [isVoting, setIsVoting] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followCheckLoading, setFollowCheckLoading] = useState(true);
   const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
+  const [isDropCreatorPremium, setIsDropCreatorPremium] = useState(false);
   const [votePopup, setVotePopup] = useState<{
     type: 'fire' | 'down' | 'chill' | null;
     show: boolean;
@@ -61,7 +65,23 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
     } else {
       setBookmarkCheckLoading(false);
     }
+
+    // Check if drop creator is premium
+    checkDropCreatorPremium();
   }, [user, drop.user_id, drop.id]);
+
+  const checkDropCreatorPremium = async () => {
+    try {
+      const { data, error } = await supabase.rpc('is_user_premium', {
+        check_user_id: drop.user_id
+      });
+      if (!error) {
+        setIsDropCreatorPremium(data);
+      }
+    } catch (error) {
+      console.error('Error checking creator premium status:', error);
+    }
+  };
 
   const checkFollowStatus = async () => {
     if (!user) return;
@@ -206,12 +226,23 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <Avatar className="w-12 h-12 ring-2 ring-purple-400/30 ring-offset-2 ring-offset-black/20">
-              <AvatarImage src={drop.profiles?.avatar_url} />
-              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold">
-                {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            {isDropCreatorPremium ? (
+              <PremiumGlow intensity="subtle">
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={drop.profiles?.avatar_url} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold">
+                    {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </PremiumGlow>
+            ) : (
+              <Avatar className="w-12 h-12 ring-2 ring-purple-400/30 ring-offset-2 ring-offset-black/20">
+                <AvatarImage src={drop.profiles?.avatar_url} />
+                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold">
+                  {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            )}
             <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <p className="font-semibold text-white">{drop.profiles?.username || 'Anonymous'}</p>

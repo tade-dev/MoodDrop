@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Plus, Search, User, LogOut, Music, Sparkles, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import {
   Sidebar,
   SidebarContent,
@@ -16,11 +16,15 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import PremiumBadge from './PremiumBadge';
+import PremiumGlow from './PremiumGlow';
+import GoPremiumButton from './GoPremiumButton';
 
 const AppSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isPremium } = useSubscription();
 
   const isActive = (path: string) => location.pathname === path;
   const isSuperAdmin = user?.email === 'akintadeseun816@gmail.com';
@@ -87,22 +91,45 @@ const AppSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Go Premium Button */}
+        {!isPremium && (
+          <div className="px-4 mt-6">
+            <GoPremiumButton size="sm" className="w-full" />
+          </div>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-white/10">
         <div className="flex items-center space-x-3 p-3 rounded-xl bg-white/5 backdrop-blur-sm mb-3">
-          <Avatar className="w-10 h-10 ring-2 ring-purple-400/30">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold">
-              {user?.email?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          {isPremium ? (
+            <PremiumGlow intensity="medium">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold">
+                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </PremiumGlow>
+          ) : (
+            <Avatar className="w-10 h-10 ring-2 ring-purple-400/30">
+              <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold">
+                {user?.email?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {user?.user_metadata?.username || user?.email?.split('@')[0]}
-            </p>
             <div className="flex items-center space-x-2">
-              <p className="text-xs text-gray-400">Vibe Creator</p>
+              <p className="text-sm font-medium text-white truncate">
+                {user?.user_metadata?.username || user?.email?.split('@')[0]}
+              </p>
+              {isPremium && <PremiumBadge size="sm" />}
+            </div>
+            <div className="flex items-center space-x-2">
+              <p className="text-xs text-gray-400">
+                {isPremium ? 'Premium Member' : 'Vibe Creator'}
+              </p>
               {isSuperAdmin && (
                 <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-2 py-0.5 rounded-full font-bold">
                   ADMIN
