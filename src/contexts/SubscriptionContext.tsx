@@ -40,6 +40,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       
       if (error) throw error;
       setGlobalPremiumEnabled(data?.premium_enabled || false);
+      console.log('Global premium enabled:', data?.premium_enabled);
     } catch (error) {
       console.error('Error fetching global settings:', error);
       setGlobalPremiumEnabled(false);
@@ -90,8 +91,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [user, isAdmin]);
 
-  // Admin users always have premium access, regular users need active subscription AND global premium enabled
-  const isPremium = isAdmin || (globalPremiumEnabled && (subscription?.is_premium || false));
+  // Fixed premium logic: When premium is OFF (false), everyone has access
+  // When premium is ON (true), only subscribers or admin have access
+  const isPremium = isAdmin || (!globalPremiumEnabled || (subscription?.is_premium || false));
 
   return (
     <SubscriptionContext.Provider value={{
