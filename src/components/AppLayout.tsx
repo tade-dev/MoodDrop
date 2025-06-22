@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
@@ -16,15 +16,20 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   // Don't show sidebar on landing page or auth pages
   const showSidebar = user && location.pathname !== '/' && !location.pathname.includes('/auth');
 
+  // Reset scroll position when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   if (!showSidebar) {
     return <>{children}</>;
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 min-w-0">
           <main className="relative overflow-hidden">
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
