@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Zap, Thumbs-up, Play } from 'lucide-react';
+import { Heart, Zap, ThumbsUp, Play } from 'lucide-react';
 
 interface HotDropsGridProps {
   timeFilter: string;
@@ -92,7 +92,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
                     <Zap className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 hover:bg-green-500/20 p-2">
-                    <Thumbs-up className="w-4 h-4" />
+                    <ThumbsUp className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
