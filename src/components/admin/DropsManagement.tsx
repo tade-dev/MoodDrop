@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +33,7 @@ const DropsManagement = () => {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMood, setSelectedMood] = useState<string>('');
+  const [selectedMood, setSelectedMood] = useState<string>('all');
   const pageSize = 10;
 
   const { data: drops, isLoading } = useQuery({
@@ -43,7 +42,7 @@ const DropsManagement = () => {
       const { data, error } = await supabase.rpc('get_all_drops_admin', {
         page_limit: pageSize,
         page_offset: currentPage * pageSize,
-        mood_filter: selectedMood || null
+        mood_filter: selectedMood === 'all' ? null : selectedMood
       });
       
       if (error) throw error;
@@ -122,7 +121,7 @@ const DropsManagement = () => {
               <SelectValue placeholder="Filter by mood" />
             </SelectTrigger>
             <SelectContent className="bg-black/90 border-white/20">
-              <SelectItem value="">All Moods</SelectItem>
+              <SelectItem value="all">All Moods</SelectItem>
               {moods?.map((mood) => (
                 <SelectItem key={mood.id} value={mood.id} className="text-white">
                   {mood.emoji} {mood.name}
