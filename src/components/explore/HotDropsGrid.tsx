@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +23,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_hot_drops', {
         hours_back: hoursBack,
-        result_limit: 5
+        result_limit: 10
       });
       if (error) throw error;
       return data;
@@ -34,7 +33,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="aspect-square bg-white/5 rounded-xl animate-pulse" />
         ))}
       </div>
