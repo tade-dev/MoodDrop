@@ -14,17 +14,68 @@ const NearbyVibes = ({ userLocation }: NearbyVibesProps) => {
   const { data: nearbyDrops, isLoading } = useQuery({
     queryKey: ['nearby-drops', userLocation.lat, userLocation.lng],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_nearby_drops', {
-        user_lat: userLocation.lat,
-        user_lng: userLocation.lng,
-        radius_km: 50,
-        result_limit: 10
-      });
+      console.log('Fetching nearby drops for location:', userLocation);
       
-      if (error) throw error;
-      return data;
+      // Use a direct query instead of the RPC function to ensure we get all drops
+      const { data, error } = await supabase
+        .from('drops')
+        .select(`
+          *,
+          moods!inner(id, name, emoji),
+          profiles!inner(id, username)
+        `)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+      
+      if (error) {
+        console.error('Error fetching nearby drops:', error);
+        throw error;
+      }
+      
+      // Calculate distance client-side and filter
+      const dropsWithDistance = data
+        .map(drop => {
+          const distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            Number(drop.latitude),
+            Number(drop.longitude)
+          );
+          
+          return {
+            id: drop.id,
+            song_title: drop.song_title,
+            artist_name: drop.artist_name,
+            spotify_url: drop.spotify_url,
+            caption: drop.caption,
+            mood_name: drop.moods.name,
+            mood_emoji: drop.moods.emoji,
+            username: drop.profiles.username,
+            distance_km: distance,
+            created_at: drop.created_at
+          };
+        })
+        .filter(drop => drop.distance_km <= 50) // 50km radius
+        .sort((a, b) => a.distance_km - b.distance_km)
+        .slice(0, 10); // Limit to 10 results
+      
+      console.log('Nearby drops processed:', dropsWithDistance);
+      return dropsWithDistance;
     },
   });
+
+  // Haversine formula to calculate distance between two points
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   const formatDistance = (distance: number) => {
     if (distance < 1) {
@@ -81,7 +132,7 @@ const NearbyVibes = ({ userLocation }: NearbyVibesProps) => {
                   </Badge>
                   <Badge variant="outline" className="text-gray-400 border-gray-500/30">
                     <MapPin className="w-3 h-3 mr-1" />
-                    {formatDistance(Number(drop.distance_km))}
+                    {formatDistance(drop.distance_km)}
                   </Badge>
                 </div>
 

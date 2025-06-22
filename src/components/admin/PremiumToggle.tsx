@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Crown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PremiumToggle = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['global-settings'],
@@ -33,6 +35,12 @@ const PremiumToggle = () => {
   const updatePremiumMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       console.log('Updating premium setting to:', enabled);
+      
+      // Check if user is admin before making the request
+      if (!user || user.email !== 'akintadeseun816@gmail.com') {
+        throw new Error('Access denied: Admin only');
+      }
+      
       const { error } = await supabase
         .from('global_settings')
         .update({ 
