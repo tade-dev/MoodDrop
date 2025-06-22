@@ -25,11 +25,11 @@ const CreateDrop = () => {
   const [caption, setCaption] = useState('');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [dropType, setDropType] = useState('song');
-  const [location, setLocation] = useState('');
   const [moods, setMoods] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canCreateDrop, setCanCreateDrop] = useState(true);
   const [thisMonthDropCount, setThisMonthDropCount] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -39,7 +39,31 @@ const CreateDrop = () => {
     
     fetchMoods();
     checkDropLimit();
+    getCurrentLocation();
   }, [user, navigate]);
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          console.log('Location captured:', position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.log('Geolocation not available or permission denied');
+          // Continue without location - it's optional
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    }
+  };
 
   const checkDropLimit = async () => {
     try {
@@ -129,7 +153,8 @@ const CreateDrop = () => {
             song_title: 'Loading...', // Will be updated by the display component
             caption: caption.trim() || null,
             mood_id: moodId,
-            location_name: location.trim() || null,
+            latitude: userLocation?.lat || null,
+            longitude: userLocation?.lng || null,
             drop_type: dropType
           })
       );
@@ -204,6 +229,16 @@ const CreateDrop = () => {
               </div>
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Location Status */}
+        {userLocation && (
+          <div className="mb-4 text-center">
+            <Badge variant="outline" className="text-green-400 border-green-400/30">
+              <MapPin className="w-3 h-3 mr-1" />
+              Location detected for nearby vibes
+            </Badge>
+          </div>
         )}
 
         {/* Main Form */}
@@ -292,16 +327,6 @@ const CreateDrop = () => {
                     Selected: {selectedMoods.length} mood{selectedMoods.length > 1 ? 's' : ''}
                   </div>
                 )}
-              </div>
-              
-              <div>
-                <Input
-                  type="text"
-                  placeholder="Add location (optional)"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
-                />
               </div>
               
               <div className="flex justify-between items-center pt-4">
