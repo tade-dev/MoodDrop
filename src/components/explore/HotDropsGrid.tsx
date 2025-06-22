@@ -24,7 +24,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_hot_drops', {
         hours_back: hoursBack,
-        result_limit: 20
+        result_limit: 5
       });
       if (error) throw error;
       return data;
@@ -33,8 +33,8 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="aspect-square bg-white/5 rounded-xl animate-pulse" />
         ))}
       </div>
@@ -42,7 +42,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       {hotDrops?.map((drop) => (
         <Card
           key={drop.id}
