@@ -66,6 +66,7 @@ export type Database = {
           created_by: string | null
           emoji: string
           id: string
+          is_custom: boolean
           name: string
           updated_at: string
         }
@@ -74,6 +75,7 @@ export type Database = {
           created_by?: string | null
           emoji: string
           id?: string
+          is_custom?: boolean
           name: string
           updated_at?: string
         }
@@ -82,6 +84,7 @@ export type Database = {
           created_by?: string | null
           emoji?: string
           id?: string
+          is_custom?: boolean
           name?: string
           updated_at?: string
         }

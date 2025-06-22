@@ -19,9 +19,9 @@ const Navigation = () => {
       <div className="flex items-center justify-around max-w-md mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className={`flex flex-col items-center space-y-1 px-3 py-2 ${
-            isActive('/') ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+            isActive('/home') ? 'text-purple-400' : 'text-gray-400 hover:text-white'
           }`}
         >
           <Home className="w-5 h-5" />

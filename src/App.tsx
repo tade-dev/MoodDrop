@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
+import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import MoodFeed from "./pages/MoodFeed";
@@ -24,7 +25,8 @@ const App = () => (
         <BrowserRouter>
           <div className="relative">
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/mood/:moodId" element={<MoodFeed />} />
               <Route path="/create" element={<CreateDrop />} />

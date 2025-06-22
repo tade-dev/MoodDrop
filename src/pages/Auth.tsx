@@ -17,7 +17,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
@@ -39,7 +39,7 @@ const Auth = () => {
             title: "Welcome back!",
             description: "Successfully signed in to MoodDrop"
           });
-          navigate('/');
+          navigate('/home');
         }
       } else {
         const { error } = await signUp(email, password, username);
