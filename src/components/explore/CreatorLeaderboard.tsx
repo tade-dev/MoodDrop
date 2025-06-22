@@ -1,14 +1,18 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Trophy, Crown, Award, Medal, UserPlus } from 'lucide-react';
+import { Trophy, Crown, Award, Medal } from 'lucide-react';
+import FollowButton from '@/components/FollowButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CreatorLeaderboard = () => {
-  const { data: creators, isLoading } = useQuery({
+  const { user } = useAuth();
+  const [followStates, setFollowStates] = useState<{ [key: string]: boolean }>({});
+
+  const { data: creators, isLoading, refetch } = useQuery({
     queryKey: ['creator-leaderboard'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,6 +24,41 @@ const CreatorLeaderboard = () => {
       return data;
     },
   });
+
+  useEffect(() => {
+    if (user && creators) {
+      checkFollowStates();
+    }
+  }, [user, creators]);
+
+  const checkFollowStates = async () => {
+    if (!user || !creators) return;
+    
+    const creatorIds = creators.map(creator => creator.id);
+    
+    try {
+      const { data, error } = await supabase
+        .from('follows')
+        .select('followed_id')
+        .eq('follower_id', user.id)
+        .in('followed_id', creatorIds);
+
+      if (!error && data) {
+        const followedIds = data.reduce((acc, follow) => {
+          acc[follow.followed_id] = true;
+          return acc;
+        }, {} as { [key: string]: boolean });
+        
+        setFollowStates(followedIds);
+      }
+    } catch (error) {
+      console.error('Error checking follow states:', error);
+    }
+  };
+
+  const handleFollowChange = () => {
+    checkFollowStates();
+  };
 
   const getRankIcon = (index: number) => {
     switch (index) {
@@ -93,13 +132,12 @@ const CreatorLeaderboard = () => {
               </div>
 
               {/* Follow Button */}
-              <Button 
-                size="sm" 
-                className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-400/30 hover:border-purple-400/50"
-              >
-                <UserPlus className="w-4 h-4 mr-1" />
-                Follow
-              </Button>
+              <FollowButton
+                targetUserId={creator.id}
+                isFollowing={followStates[creator.id] || false}
+                onFollowChange={handleFollowChange}
+                username={creator.username}
+              />
             </div>
           </CardContent>
         </Card>

@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Zap, ThumbsUp, Play } from 'lucide-react';
+import { Heart, Zap, ThumbsUp, Play, User } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
 
 interface HotDropsGridProps {
@@ -14,7 +15,7 @@ interface HotDropsGridProps {
 }
 
 const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const hoursBack = timeFilter === '24h' ? 24 : timeFilter === '7d' ? 168 : 24;
 
@@ -32,7 +33,7 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="aspect-square bg-white/5 rounded-xl animate-pulse" />
         ))}
@@ -41,17 +42,17 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
   }
 
   return (
-    <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {hotDrops?.map((drop) => (
         <Card
           key={drop.id}
-          className="break-inside-avoid bg-gradient-to-br from-purple-900/30 via-pink-900/20 to-blue-900/30 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-500 cursor-pointer group overflow-hidden"
-          onMouseEnter={() => setExpandedCard(drop.id)}
-          onMouseLeave={() => setExpandedCard(null)}
+          className="group relative overflow-hidden bg-gradient-to-br from-black/60 via-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/50 transition-all duration-500 cursor-pointer hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
+          onMouseEnter={() => setHoveredCard(drop.id)}
+          onMouseLeave={() => setHoveredCard(null)}
         >
           <CardContent className="p-0">
             {/* Spotify Embed */}
-            <div className="aspect-square relative overflow-hidden rounded-t-xl">
+            <div className="aspect-square relative overflow-hidden">
               <iframe
                 src={getSpotifyEmbedUrl(drop.spotify_url)}
                 width="100%"
@@ -62,44 +63,52 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
                 className="rounded-t-xl"
               />
               
-              {/* Overlay with info - shows on hover/expanded */}
-              <div className={`absolute inset-0 bg-black/80 backdrop-blur-sm p-4 flex flex-col justify-between transition-all duration-500 ${
-                expandedCard === drop.id ? 'opacity-100' : 'opacity-0'
-              }`}>
-                <div>
-                  <Badge className="mb-2 bg-purple-500/20 text-purple-300 border-purple-400/30">
+              {/* Gradient overlay for better text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Content overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="space-y-2">
+                  {/* Mood badge */}
+                  <Badge className="bg-purple-500/30 border-purple-400/50 text-purple-200 text-xs">
                     {drop.mood_emoji} {drop.mood_name}
                   </Badge>
-                  <h3 className="font-bold text-white text-sm mb-1">{drop.song_title}</h3>
-                  <p className="text-gray-300 text-xs mb-2">{drop.artist_name}</p>
-                  {drop.caption && (
-                    <p className="text-gray-400 text-xs line-clamp-2">{drop.caption}</p>
-                  )}
-                </div>
-                
-                {/* Vote buttons */}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/20 p-2">
-                    <Heart className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 p-2">
-                    <Zap className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 p-2">
-                    <Zap className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 hover:bg-green-500/20 p-2">
-                    <ThumbsUp className="w-4 h-4" />
-                  </Button>
+                  
+                  {/* Song info */}
+                  <div>
+                    <h3 className="font-bold text-white text-sm line-clamp-1">{drop.song_title}</h3>
+                    <p className="text-gray-300 text-xs line-clamp-1">{drop.artist_name}</p>
+                  </div>
+                  
+                  {/* User info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-purple-600 text-white text-xs">
+                          <User className="w-3 h-3" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-gray-400 text-xs">@{drop.username}</span>
+                    </div>
+                    <span className="text-purple-300 text-xs font-medium">{drop.vote_count} votes</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Bottom info - always visible */}
-            <div className="p-3">
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>@{drop.username}</span>
-                <span>{drop.vote_count} votes</span>
+              
+              {/* Hover actions */}
+              <div className={`absolute top-2 right-2 flex gap-1 transition-all duration-300 ${
+                hoveredCard === drop.id ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+              }`}>
+                <Button size="sm" variant="ghost" className="w-8 h-8 p-0 bg-black/50 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-full">
+                  <Heart className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="w-8 h-8 p-0 bg-black/50 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 rounded-full">
+                  <Zap className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="w-8 h-8 p-0 bg-black/50 hover:bg-green-500/30 text-green-400 hover:text-green-300 rounded-full">
+                  <ThumbsUp className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </CardContent>
