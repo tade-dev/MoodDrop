@@ -15,8 +15,7 @@ interface Mood {
 }
 
 const Home = () => {
-  const [defaultMoods, setDefaultMoods] = useState<Mood[]>([]);
-  const [customMoods, setCustomMoods] = useState<Mood[]>([]);
+  const [moods, setMoods] = useState<Mood[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -39,11 +38,7 @@ const Home = () => {
 
       if (error) throw error;
       
-      const defaultMoodsList = data?.filter(mood => !mood.is_custom) || [];
-      const customMoodsList = data?.filter(mood => mood.is_custom) || [];
-      
-      setDefaultMoods(defaultMoodsList);
-      setCustomMoods(customMoodsList);
+      setMoods(data || []);
     } catch (error) {
       console.error('Error fetching moods:', error);
     } finally {
@@ -81,11 +76,11 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Default Moods Section */}
-        <div className="mb-10">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Popular Moods</h2>
+        {/* All Moods Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose Your Mood</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {defaultMoods.map((mood) => (
+            {moods.map((mood) => (
               <MoodCard
                 key={mood.id}
                 mood={mood}
@@ -95,27 +90,11 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Custom Moods Section */}
-        {customMoods.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">Your Custom Moods</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {customMoods.map((mood) => (
-                <MoodCard
-                  key={mood.id}
-                  mood={mood}
-                  onClick={() => handleMoodClick(mood.id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State for Custom Moods */}
-        {customMoods.length === 0 && (
+        {/* Empty State */}
+        {moods.length === 0 && (
           <div className="text-center mt-8">
             <p className="text-gray-400 text-sm">
-              Create your first custom mood to personalize your experience! 🎨
+              No moods available. Create your first custom mood! 🎨
             </p>
           </div>
         )}
