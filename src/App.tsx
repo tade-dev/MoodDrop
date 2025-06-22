@@ -13,13 +13,20 @@ import Explore from './pages/Explore';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from './components/AppLayout';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
   return (
-    <Router>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
           <AppLayout>
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -32,9 +39,9 @@ function App() {
             </Routes>
           </AppLayout>
           <Toaster />
-        </AuthProvider>
-      </QueryClientProvider>
-    </Router>
+        </Router>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
