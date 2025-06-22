@@ -38,6 +38,30 @@ export type Database = {
           },
         ]
       }
+      daily_drops: {
+        Row: {
+          created_at: string
+          drop_count: number
+          drop_date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drop_count?: number
+          drop_date?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drop_count?: number
+          drop_date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       drops: {
         Row: {
           artist_name: string
@@ -286,6 +310,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan: string
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       votes: {
         Row: {
           created_at: string
@@ -364,6 +424,22 @@ export type Database = {
       admin_flag_user: {
         Args: { user_id: string; flag_status: boolean }
         Returns: undefined
+      }
+      can_user_create_drop: {
+        Args: { check_user_id?: string }
+        Returns: boolean
+      }
+      get_admin_subscriptions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_email: string
+          username: string
+          plan: string
+          status: string
+          current_period_end: string
+          created_at: string
+        }[]
       }
       get_all_drops_admin: {
         Args: {
@@ -466,6 +542,24 @@ export type Database = {
           following_count: number
           drops_count: number
         }[]
+      }
+      get_user_subscription: {
+        Args: { check_user_id?: string }
+        Returns: {
+          id: string
+          plan: string
+          status: string
+          current_period_end: string
+          is_premium: boolean
+        }[]
+      }
+      increment_daily_drop_count: {
+        Args: { check_user_id?: string }
+        Returns: undefined
+      }
+      is_user_premium: {
+        Args: { check_user_id?: string }
+        Returns: boolean
       }
     }
     Enums: {
