@@ -15,18 +15,24 @@ const PremiumToggle = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['global-settings'],
     queryFn: async () => {
+      console.log('Fetching global settings...');
       const { data, error } = await supabase
         .from('global_settings')
         .select('*')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching global settings:', error);
+        throw error;
+      }
+      console.log('Global settings fetched:', data);
       return data;
     },
   });
 
   const updatePremiumMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
+      console.log('Updating premium setting to:', enabled);
       const { error } = await supabase
         .from('global_settings')
         .update({ 
@@ -35,7 +41,11 @@ const PremiumToggle = () => {
         })
         .eq('id', 1);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating premium setting:', error);
+        throw error;
+      }
+      console.log('Premium setting updated successfully');
     },
     onSuccess: (_, enabled) => {
       queryClient.invalidateQueries({ queryKey: ['global-settings'] });
@@ -45,16 +55,17 @@ const PremiumToggle = () => {
       });
     },
     onError: (error) => {
+      console.error('Premium toggle mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to update premium settings.",
+        description: `Failed to update premium settings: ${error.message}`,
         variant: "destructive",
       });
-      console.error('Premium toggle error:', error);
     },
   });
 
   const handleToggle = (checked: boolean) => {
+    console.log('Toggle clicked, new value:', checked);
     updatePremiumMutation.mutate(checked);
   };
 
@@ -103,6 +114,13 @@ const PremiumToggle = () => {
             <li>• Analytics dashboard</li>
           </ul>
         </div>
+
+        {updatePremiumMutation.isPending && (
+          <div className="flex items-center justify-center p-2">
+            <Loader2 className="w-4 h-4 animate-spin text-purple-400 mr-2" />
+            <span className="text-gray-400 text-sm">Updating settings...</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
