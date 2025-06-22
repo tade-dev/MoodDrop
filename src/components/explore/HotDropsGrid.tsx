@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Fire, Snowflake, ThumbsUp, Play } from 'lucide-react';
+import { Heart, Zap, Thumbs-up, Play } from 'lucide-react';
 
 interface HotDropsGridProps {
   timeFilter: string;
@@ -87,13 +86,13 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
                     <Heart className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 p-2">
-                    <Fire className="w-4 h-4" />
+                    <Zap className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 p-2">
-                    <Snowflake className="w-4 h-4" />
+                    <Zap className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 hover:bg-green-500/20 p-2">
-                    <ThumbsUp className="w-4 h-4" />
+                    <Thumbs-up className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
