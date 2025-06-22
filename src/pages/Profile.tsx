@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Music, TrendingUp, Headphones, Heart, Zap, Star, Users, Bookmark } from 'lucide-react';
@@ -139,7 +140,7 @@ const Profile = () => {
         .select(`
           follower_id,
           created_at,
-          profiles!follows_follower_id_fkey (
+          follower_profile:profiles!follows_follower_id_fkey (
             id,
             username, 
             avatar_url,
@@ -161,7 +162,7 @@ const Profile = () => {
         .select(`
           followed_id,
           created_at,
-          profiles!follows_followed_id_fkey (
+          followed_profile:profiles!follows_followed_id_fkey (
             id,
             username, 
             avatar_url,
@@ -407,13 +408,13 @@ const Profile = () => {
                   >
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={follower.profiles?.avatar_url} />
+                        <AvatarImage src={follower.follower_profile?.avatar_url} />
                         <AvatarFallback className="bg-purple-600 text-white">
-                          {follower.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                          {follower.follower_profile?.username?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-white">{follower.profiles?.username || 'Unknown'}</p>
+                        <p className="font-semibold text-white">{follower.follower_profile?.username || 'Unknown'}</p>
                         <p className="text-gray-400 text-sm">
                           Followed {new Date(follower.created_at).toLocaleDateString()}
                         </p>
@@ -444,13 +445,13 @@ const Profile = () => {
                   >
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={followed.profiles?.avatar_url} />
+                        <AvatarImage src={followed.followed_profile?.avatar_url} />
                         <AvatarFallback className="bg-purple-600 text-white">
-                          {followed.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                          {followed.followed_profile?.username?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-white">{followed.profiles?.username || 'Unknown'}</p>
+                        <p className="font-semibold text-white">{followed.followed_profile?.username || 'Unknown'}</p>
                         <p className="text-gray-400 text-sm">
                           Following since {new Date(followed.created_at).toLocaleDateString()}
                         </p>
