@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, TrendingUp, Star, Users, Heart, Zap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -81,7 +80,7 @@ const Explore = () => {
         {/* Hot Drops Grid */}
         <section className="mb-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-3 mb-6">
-            <Fire className="w-6 h-6 text-orange-400" />
+            <Zap className="w-6 h-6 text-orange-400" />
             <h2 className="text-2xl font-bold text-white">Hot Drops</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-orange-500/50 to-transparent" />
           </div>
