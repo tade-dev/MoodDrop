@@ -22,6 +22,7 @@ const CreateDrop = () => {
   const { isPremium } = useSubscription();
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [artistName, setArtistName] = useState('');
+  const [songTitle, setSongTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [dropType, setDropType] = useState('song');
@@ -150,7 +151,7 @@ const CreateDrop = () => {
             user_id: user.id,
             spotify_url: spotifyUrl,
             artist_name: artistName.trim() || 'Unknown Artist',
-            song_title: 'Loading...', // Will be updated by the display component
+            song_title: songTitle.trim() || 'Untitled',
             caption: caption.trim() || null,
             mood_id: moodId,
             latitude: userLocation?.lat || null,
@@ -287,6 +288,16 @@ const CreateDrop = () => {
                   placeholder="Artist Name"
                   value={artistName}
                   onChange={(e) => setArtistName(e.target.value)}
+                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <Input
+                  type="text"
+                  placeholder="Song Title"
+                  value={songTitle}
+                  onChange={(e) => setSongTitle(e.target.value)}
                   className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
                 />
               </div>
