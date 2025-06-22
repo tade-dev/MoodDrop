@@ -49,7 +49,7 @@ const AppSidebar = () => {
   if (!user) return null;
   if (location.pathname === '/') return null;
 
-  const SidebarMenuItem = ({ item }: { item: typeof menuItems[0] }) => {
+  const NavigationItem = ({ item }: { item: typeof menuItems[0] }) => {
     const content = (
       <SidebarMenuButton
         onClick={() => navigate(item.url)}
@@ -126,7 +126,7 @@ const AppSidebar = () => {
               <SidebarMenu className="space-y-2">
                 {menuItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuItem item={item} />
+                    <NavigationItem item={item} />
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
