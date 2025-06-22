@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, Flame, Moon, MoreHorizontal, Play, Pause } from 'lucide-react';
+import { Heart, Flame, Moon, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface EnhancedDropCardProps {
   drop: {
@@ -37,7 +37,10 @@ interface EnhancedDropCardProps {
 const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) => {
   const { user } = useAuth();
   const [isVoting, setIsVoting] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [votePopup, setVotePopup] = useState<{
+    type: 'fire' | 'down' | 'chill' | null;
+    show: boolean;
+  }>({ type: null, show: false });
 
   const getSpotifyEmbedUrl = (url: string) => {
     const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
@@ -49,6 +52,13 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
       return `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
     }
     return null;
+  };
+
+  const triggerVoteAnimation = (voteType: 'fire' | 'down' | 'chill') => {
+    setVotePopup({ type: voteType, show: true });
+    setTimeout(() => {
+      setVotePopup({ type: null, show: false });
+    }, 1000);
   };
 
   const handleVote = async (voteType: 'fire' | 'down' | 'chill') => {
@@ -78,6 +88,7 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
             .update({ vote_type: voteType })
             .eq('drop_id', drop.id)
             .eq('user_id', user.id);
+          triggerVoteAnimation(voteType);
         }
       } else {
         await supabase
@@ -87,6 +98,7 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
             user_id: user.id,
             vote_type: voteType
           });
+        triggerVoteAnimation(voteType);
       }
       
       onVote?.();
@@ -113,8 +125,26 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
   const embedUrl = getSpotifyEmbedUrl(drop.spotify_url);
   const timeAgo = new Date(drop.created_at).toLocaleDateString();
 
+  const getVoteEmoji = (voteType: 'fire' | 'down' | 'chill') => {
+    switch (voteType) {
+      case 'fire': return '🔥';
+      case 'down': return '💔';
+      case 'chill': return '💤';
+      default: return '';
+    }
+  };
+
   return (
-    <Card className="group relative overflow-hidden bg-gradient-to-br from-black/60 via-purple-900/20 to-pink-900/20 backdrop-blur-xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20 animate-fade-in">
+    <Card className="group relative overflow-hidden bg-gradient-to-br from-black/80 via-purple-900/30 to-pink-900/30 backdrop-blur-xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20 animate-fade-in">
+      {/* Vote popup animation */}
+      {votePopup.show && votePopup.type && (
+        <div 
+          className={`vote-popup vote-popup-${votePopup.type} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-${votePopup.type}-popup`}
+        >
+          {getVoteEmoji(votePopup.type)}
+        </div>
+      )}
+
       {/* Animated background glow */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-pink-600/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
@@ -159,14 +189,6 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
                 <p className="text-gray-300 mt-2 text-sm italic">"{drop.caption}"</p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="ml-3 w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:scale-110 transition-all duration-300"
-            >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-            </Button>
           </div>
         </div>
 

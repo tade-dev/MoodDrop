@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -133,6 +134,56 @@ export default {
 				'glow-pulse': {
 					'0%, 100%': { boxShadow: '0 0 20px rgba(147, 51, 234, 0.3)' },
 					'50%': { boxShadow: '0 0 40px rgba(147, 51, 234, 0.6)' }
+				},
+				'fire-popup': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(0) scale(0.5)'
+					},
+					'50%': {
+						opacity: '1',
+						transform: 'translateY(-30px) scale(1.2)'
+					},
+					'100%': {
+						opacity: '0',
+						transform: 'translateY(-60px) scale(0.8)'
+					}
+				},
+				'heart-popup': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(0) scale(0.5)'
+					},
+					'50%': {
+						opacity: '1',
+						transform: 'translateY(-25px) scale(1.1)'
+					},
+					'100%': {
+						opacity: '0',
+						transform: 'translateY(-50px) scale(0.9)'
+					}
+				},
+				'chill-popup': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(0) scale(0.5) rotate(0deg)'
+					},
+					'50%': {
+						opacity: '1',
+						transform: 'translateY(-20px) scale(1.0) rotate(180deg)'
+					},
+					'100%': {
+						opacity: '0',
+						transform: 'translateY(-40px) scale(0.7) rotate(360deg)'
+					}
+				},
+				'shimmer': {
+					'0%': {
+						backgroundPosition: '-200% 0'
+					},
+					'100%': {
+						backgroundPosition: '200% 0'
+					}
 				}
 			},
 			animation: {
@@ -144,7 +195,11 @@ export default {
 				'float': 'float 6s ease-in-out infinite',
 				'float-delayed': 'float-delayed 8s ease-in-out infinite 2s',
 				'float-slow': 'float-slow 10s ease-in-out infinite 4s',
-				'glow-pulse': 'glow-pulse 2s ease-in-out infinite'
+				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+				'fire-popup': 'fire-popup 1s ease-out forwards',
+				'heart-popup': 'heart-popup 1s ease-out forwards',
+				'chill-popup': 'chill-popup 1.2s ease-out forwards',
+				'shimmer': 'shimmer 2s linear infinite'
 			}
 		}
 	},
