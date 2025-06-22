@@ -11,6 +11,7 @@ import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import MoodFeed from './pages/MoodFeed';
 import Explore from './pages/Explore';
+import Moods from './pages/Moods';
 import Admin from './pages/Admin';
 import GoPremium from './pages/GoPremium';
 import PremiumSuccess from './pages/PremiumSuccess';
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/explore" element={<Explore />} />
+                <Route path="/moods" element={<Moods />} />
                 <Route path="/create" element={<CreateDrop />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/auth" element={<Auth />} />

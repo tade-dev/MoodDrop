@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Plus, Search, User, LogOut, Music, Sparkles, Shield, Menu } from 'lucide-react';
+import { Home, Plus, Search, User, LogOut, Music, Sparkles, Shield, Menu, Palette } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -37,6 +36,7 @@ const AppSidebar = () => {
   const menuItems = [
     { title: 'Home', url: '/home', icon: Home },
     { title: 'Explore', url: '/explore', icon: Search },
+    { title: 'Moods', url: '/moods', icon: Palette },
     { title: 'Create Drop', url: '/create', icon: Plus },
     { title: 'Profile', url: '/profile', icon: User },
   ];
