@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, Flame, Moon, MoreHorizontal } from 'lucide-react';
+import { Heart, Flame, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +12,7 @@ import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
 import FollowButton from './FollowButton';
 import BookmarkButton from './BookmarkButton';
 import PremiumGlow from './PremiumGlow';
+import DropActionsMenu from './DropActionsMenu';
 
 interface EnhancedDropCardProps {
   drop: {
@@ -262,13 +264,17 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
               />
             )}
             
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            <DropActionsMenu
+              dropId={drop.id}
+              userId={drop.user_id}
+              onDropDeleted={onVote}
+              onDropEdit={() => {
+                toast({
+                  title: "Coming soon",
+                  description: "Drop editing feature is currently in development.",
+                });
+              }}
+            />
           </div>
         </div>
 
