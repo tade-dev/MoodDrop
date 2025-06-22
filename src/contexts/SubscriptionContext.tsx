@@ -25,9 +25,25 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check if user is admin
+  const isAdmin = user?.email === 'akintadeseun816@gmail.com';
+
   const refreshSubscription = async () => {
     if (!user) {
       setSubscription(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Admin users automatically have premium access
+    if (isAdmin) {
+      setSubscription({
+        id: 'admin',
+        plan: 'admin',
+        status: 'active',
+        current_period_end: '2099-12-31T23:59:59Z', // Far future date
+        is_premium: true
+      });
       setIsLoading(false);
       return;
     }
@@ -53,9 +69,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     refreshSubscription();
-  }, [user]);
+  }, [user, isAdmin]);
 
-  const isPremium = subscription?.is_premium || false;
+  // Admin users always have premium access, regular users need active subscription
+  const isPremium = isAdmin || (subscription?.is_premium || false);
 
   return (
     <SubscriptionContext.Provider value={{

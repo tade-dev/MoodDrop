@@ -9,13 +9,18 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 const GoPremium = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = useSubscription();
   const { toast } = useToast();
   const [isYearly, setIsYearly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user is admin
+  const isAdmin = user?.email === 'akintadeseun816@gmail.com';
 
   const { data: settings } = useQuery({
     queryKey: ['global-settings'],
@@ -107,6 +112,37 @@ const GoPremium = () => {
     }
   };
 
+  // Admin users should see they already have premium access
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen p-6 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="mb-8">
+            <Crown className="w-16 h-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
+            <h1 className="text-4xl font-bold text-white mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Admin Account - Full Access! 👑
+            </h1>
+            <p className="text-gray-300 text-lg mb-6">
+              As an admin, you have access to all premium features and administrative controls.
+            </p>
+            <div className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-400/30 rounded-lg p-6 mb-6">
+              <p className="text-amber-200">
+                🎉 You already have unlimited access to all MoodDrop+ features including admin tools!
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            onClick={() => navigate('/home')}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            Back to App
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isPremium) {
     return (
       <div className="min-h-screen p-6 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -122,7 +158,7 @@ const GoPremium = () => {
           </div>
           
           <Button
-            onClick={() => window.history.back()}
+            onClick={() => navigate('/home')}
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
             Back to App
