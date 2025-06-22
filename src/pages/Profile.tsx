@@ -133,31 +133,49 @@ const Profile = () => {
     if (!user) return;
     
     try {
-      // Fetch followers
+      // Fetch followers with profile data
       const { data: followersData, error: followersError } = await supabase
         .from('follows')
         .select(`
           follower_id,
           created_at,
-          profiles!follows_follower_id_fkey (username, avatar_url)
+          profiles!follows_follower_id_fkey (
+            id,
+            username, 
+            avatar_url,
+            email
+          )
         `)
         .eq('followed_id', user.id);
 
-      if (followersError) throw followersError;
-      setFollowers(followersData || []);
+      if (followersError) {
+        console.error('Error fetching followers:', followersError);
+      } else {
+        console.log('Followers data:', followersData);
+        setFollowers(followersData || []);
+      }
 
-      // Fetch following
+      // Fetch following with profile data
       const { data: followingData, error: followingError } = await supabase
         .from('follows')
         .select(`
           followed_id,
           created_at,
-          profiles!follows_followed_id_fkey (username, avatar_url)
+          profiles!follows_followed_id_fkey (
+            id,
+            username, 
+            avatar_url,
+            email
+          )
         `)
         .eq('follower_id', user.id);
 
-      if (followingError) throw followingError;
-      setFollowing(followingData || []);
+      if (followingError) {
+        console.error('Error fetching following:', followingError);
+      } else {
+        console.log('Following data:', followingData);
+        setFollowing(followingData || []);
+      }
     } catch (error) {
       console.error('Error fetching follow data:', error);
     }
@@ -266,7 +284,7 @@ const Profile = () => {
             <div className="relative">
               <Users className="w-8 h-8 text-blue-400 mx-auto mb-3 group-hover:animate-pulse" />
               <div className="text-3xl font-bold text-white mb-1">{stats.followersCount}</div>
-              <div className="text-blue-300 text-sm font-medium">Followers</div>
+              <div className="text-blue-300 text-sm font-medium">Followers ({followers.length})</div>
             </div>
           </Card>
           
@@ -274,7 +292,7 @@ const Profile = () => {
             <div className="relative">
               <Users className="w-8 h-8 text-green-400 mx-auto mb-3 group-hover:animate-pulse" />
               <div className="text-3xl font-bold text-white mb-1">{stats.followingCount}</div>
-              <div className="text-green-300 text-sm font-medium">Following</div>
+              <div className="text-green-300 text-sm font-medium">Following ({following.length})</div>
             </div>
           </Card>
           
@@ -300,11 +318,11 @@ const Profile = () => {
             </TabsTrigger>
             <TabsTrigger value="followers" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
-              Followers
+              Followers ({followers.length})
             </TabsTrigger>
             <TabsTrigger value="following" className="data-[state=active]:bg-purple-600/30 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
-              Following
+              Following ({following.length})
             </TabsTrigger>
           </TabsList>
 
@@ -383,7 +401,7 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {followers.map((follower, index) => (
                   <Card
-                    key={follower.follower_id}
+                    key={`${follower.follower_id}-${index}`}
                     className="bg-black/40 backdrop-blur-lg border-white/10 p-4 animate-fade-in"
                     style={{ animationDelay: `${0.1 * index}s` }}
                   >
@@ -395,7 +413,7 @@ const Profile = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-white">{follower.profiles?.username}</p>
+                        <p className="font-semibold text-white">{follower.profiles?.username || 'Unknown'}</p>
                         <p className="text-gray-400 text-sm">
                           Followed {new Date(follower.created_at).toLocaleDateString()}
                         </p>
@@ -420,7 +438,7 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {following.map((followed, index) => (
                   <Card
-                    key={followed.followed_id}
+                    key={`${followed.followed_id}-${index}`}
                     className="bg-black/40 backdrop-blur-lg border-white/10 p-4 animate-fade-in"
                     style={{ animationDelay: `${0.1 * index}s` }}
                   >
@@ -432,7 +450,7 @@ const Profile = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-white">{followed.profiles?.username}</p>
+                        <p className="font-semibold text-white">{followed.profiles?.username || 'Unknown'}</p>
                         <p className="text-gray-400 text-sm">
                           Following since {new Date(followed.created_at).toLocaleDateString()}
                         </p>

@@ -16,6 +16,7 @@ interface SubscriptionContextType {
   isPremium: boolean;
   isLoading: boolean;
   refreshSubscription: () => Promise<void>;
+  globalPremiumEnabled: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -24,9 +25,26 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [globalPremiumEnabled, setGlobalPremiumEnabled] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.email === 'akintadeseun816@gmail.com';
+
+  const fetchGlobalSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('global_settings')
+        .select('premium_enabled')
+        .eq('id', 1)
+        .single();
+      
+      if (error) throw error;
+      setGlobalPremiumEnabled(data?.premium_enabled || false);
+    } catch (error) {
+      console.error('Error fetching global settings:', error);
+      setGlobalPremiumEnabled(false);
+    }
+  };
 
   const refreshSubscription = async () => {
     if (!user) {
@@ -68,11 +86,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
+    fetchGlobalSettings();
     refreshSubscription();
   }, [user, isAdmin]);
 
-  // Admin users always have premium access, regular users need active subscription
-  const isPremium = isAdmin || (subscription?.is_premium || false);
+  // Admin users always have premium access, regular users need active subscription AND global premium enabled
+  const isPremium = isAdmin || (globalPremiumEnabled && (subscription?.is_premium || false));
 
   return (
     <SubscriptionContext.Provider value={{
@@ -80,6 +99,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       isPremium,
       isLoading,
       refreshSubscription,
+      globalPremiumEnabled,
     }}>
       {children}
     </SubscriptionContext.Provider>

@@ -21,13 +21,15 @@ const CreateDrop = () => {
   const { user } = useAuth();
   const { isPremium } = useSubscription();
   const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [artistName, setArtistName] = useState('');
   const [caption, setCaption] = useState('');
-  const [selectedMood, setSelectedMood] = useState('');
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [dropType, setDropType] = useState('song');
   const [location, setLocation] = useState('');
   const [moods, setMoods] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canCreateDrop, setCanCreateDrop] = useState(true);
-  const [todayDropCount, setTodayDropCount] = useState(0);
+  const [thisMonthDropCount, setThisMonthDropCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -46,15 +48,16 @@ const CreateDrop = () => {
       
       setCanCreateDrop(data);
       
-      // Get today's drop count for display
+      // Get this month's drop count for display
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
       const { data: dropData } = await supabase
-        .from('daily_drops')
+        .from('monthly_drops')
         .select('drop_count')
         .eq('user_id', user.id)
-        .eq('drop_date', new Date().toISOString().split('T')[0])
+        .eq('drop_month', currentMonth)
         .single();
       
-      setTodayDropCount(dropData?.drop_count || 0);
+      setThisMonthDropCount(dropData?.drop_count || 0);
     } catch (error) {
       console.error('Error checking drop limit:', error);
     }
@@ -83,13 +86,32 @@ const CreateDrop = () => {
     }
   };
 
+  const handleMoodToggle = (moodId: string) => {
+    setSelectedMoods(prev => {
+      if (prev.includes(moodId)) {
+        return prev.filter(id => id !== moodId);
+      } else {
+        return [...prev, moodId];
+      }
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!canCreateDrop && !isPremium) {
       toast({
-        title: "Daily limit reached",
-        description: "Free users can create 3 drops per day. Upgrade to Premium for unlimited drops!",
+        title: "Monthly limit reached",
+        description: "Free users can create 3 drops per month. Upgrade to Premium for unlimited drops!",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedMoods.length === 0) {
+      toast({
+        title: "Select a mood",
+        description: "Please select at least one mood for your drop",
         variant: "destructive"
       });
       return;
@@ -103,35 +125,38 @@ const CreateDrop = () => {
         throw new Error(validation.error || 'Please enter a valid Spotify URL');
       }
 
-      // Extract basic info from URL for display
-      const urlObj = new URL(spotifyUrl);
-      const pathParts = urlObj.pathname.split('/');
-      const spotifyType = pathParts[1]; // track, album, or playlist
-      const dropType = getDropTypeFromSpotifyUrl(spotifyUrl);
+      // Create multiple drops for each selected mood
+      const dropPromises = selectedMoods.map(moodId => 
+        supabase
+          .from('drops')
+          .insert({
+            user_id: user.id,
+            spotify_url: spotifyUrl,
+            artist_name: artistName.trim() || 'Unknown Artist',
+            song_title: 'Loading...', // Will be updated by the display component
+            caption: caption.trim() || null,
+            mood_id: moodId,
+            location_name: location.trim() || null,
+            drop_type: dropType
+          })
+      );
 
-      const { error } = await supabase
-        .from('drops')
-        .insert({
-          user_id: user.id,
-          spotify_url: spotifyUrl,
-          artist_name: 'Loading...', // Will be updated by the display component
-          song_title: 'Loading...', // Will be updated by the display component
-          caption: caption.trim() || null,
-          mood_id: selectedMood,
-          location_name: location.trim() || null,
-          drop_type: dropType
-        });
+      const results = await Promise.all(dropPromises);
+      
+      // Check if any inserts failed
+      const failedInserts = results.filter(result => result.error);
+      if (failedInserts.length > 0) {
+        throw new Error(failedInserts[0].error.message);
+      }
 
-      if (error) throw error;
-
-      // Increment daily drop count for non-premium users
+      // Increment monthly drop count for non-premium users
       if (!isPremium) {
         await supabase.rpc('increment_daily_drop_count');
       }
 
       toast({
         title: "Drop created! 🎵",
-        description: "Your musical vibe has been shared with the world"
+        description: `Your musical vibe has been shared with ${selectedMoods.length} mood${selectedMoods.length > 1 ? 's' : ''}`
       });
 
       navigate('/home');
@@ -180,7 +205,7 @@ const CreateDrop = () => {
             <AlertDescription className="text-amber-200">
               <div className="flex items-center justify-between">
                 <span>
-                  Daily drops: {todayDropCount}/3 {!canCreateDrop && '(Limit reached)'}
+                  Monthly drops: {thisMonthDropCount}/3 {!canCreateDrop && '(Limit reached)'}
                 </span>
                 <GoPremiumButton size="sm" variant="minimal" />
               </div>
@@ -214,6 +239,29 @@ const CreateDrop = () => {
                   className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
                 />
               </div>
+
+              <div>
+                <Select onValueChange={setDropType} defaultValue="song">
+                  <SelectTrigger className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 w-full justify-between">
+                    <SelectValue placeholder="Select drop type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/80 border-white/20 text-white">
+                    <SelectItem value="song">🎵 Song</SelectItem>
+                    <SelectItem value="album">💿 Album</SelectItem>
+                    <SelectItem value="playlist">📋 Playlist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Input
+                  type="text"
+                  placeholder="Artist Name"
+                  value={artistName}
+                  onChange={(e) => setArtistName(e.target.value)}
+                  className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 focus-visible:ring-purple-500"
+                />
+              </div>
               
               <div>
                 <Textarea
@@ -225,18 +273,32 @@ const CreateDrop = () => {
               </div>
               
               <div>
-                <Select onValueChange={setSelectedMood}>
-                  <SelectTrigger className="bg-black/80 border-white/20 text-white placeholder:text-gray-400 w-full justify-between">
-                    <SelectValue placeholder="Select a mood" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/80 border-white/20 text-white">
-                    {moods.map((mood) => (
-                      <SelectItem key={mood.id} value={mood.id}>
-                        {mood.emoji} {mood.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="block text-white text-sm font-medium mb-3">
+                  Select Moods (You can select multiple)
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  {moods.map((mood) => (
+                    <div
+                      key={mood.id}
+                      onClick={() => handleMoodToggle(mood.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-105 ${
+                        selectedMoods.includes(mood.id)
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-400 text-white'
+                          : 'bg-black/60 border-white/20 text-gray-300 hover:border-purple-400/50'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-lg mb-1">{mood.emoji}</div>
+                        <div className="text-xs font-medium">{mood.name}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {selectedMoods.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-400">
+                    Selected: {selectedMoods.length} mood{selectedMoods.length > 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
               
               <div>
@@ -261,7 +323,7 @@ const CreateDrop = () => {
                 
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !spotifyUrl || !selectedMood || (!canCreateDrop && !isPremium)}
+                  disabled={isSubmitting || !spotifyUrl || selectedMoods.length === 0 || (!canCreateDrop && !isPremium)}
                   className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50"
                 >
                   {isSubmitting ? (
