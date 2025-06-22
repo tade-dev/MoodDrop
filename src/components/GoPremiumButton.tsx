@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface GoPremiumButtonProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'default' | 'lg';
   variant?: 'default' | 'minimal';
   className?: string;
 }
 
-const GoPremiumButton = ({ size = 'md', variant = 'default', className }: GoPremiumButtonProps) => {
+const GoPremiumButton = ({ size = 'default', variant = 'default', className }: GoPremiumButtonProps) => {
   const navigate = useNavigate();
 
   if (variant === 'minimal') {

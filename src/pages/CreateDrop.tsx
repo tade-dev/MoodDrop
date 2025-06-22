@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Music, MapPin, Sparkles, AlertCircle, Crown } from 'lucide-react';
@@ -12,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { getSpotifyTrackInfo } from '@/utils/spotifyHelpers';
+import { validateSpotifyUrl, getDropTypeFromSpotifyUrl } from '@/utils/spotifyHelpers';
 import GoPremiumButton from '@/components/GoPremiumButton';
 
 const CreateDrop = () => {
@@ -97,22 +98,28 @@ const CreateDrop = () => {
     setIsSubmitting(true);
 
     try {
-      const trackInfo = getSpotifyTrackInfo(spotifyUrl);
-      if (!trackInfo.isValid) {
-        throw new Error('Please enter a valid Spotify URL');
+      const validation = validateSpotifyUrl(spotifyUrl);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Please enter a valid Spotify URL');
       }
+
+      // Extract basic info from URL for display
+      const urlObj = new URL(spotifyUrl);
+      const pathParts = urlObj.pathname.split('/');
+      const spotifyType = pathParts[1]; // track, album, or playlist
+      const dropType = getDropTypeFromSpotifyUrl(spotifyUrl);
 
       const { error } = await supabase
         .from('drops')
         .insert({
           user_id: user.id,
           spotify_url: spotifyUrl,
-          artist_name: trackInfo.artist || 'Unknown Artist',
-          song_title: trackInfo.title || 'Unknown Track',
+          artist_name: 'Loading...', // Will be updated by the display component
+          song_title: 'Loading...', // Will be updated by the display component
           caption: caption.trim() || null,
           mood_id: selectedMood,
           location_name: location.trim() || null,
-          drop_type: trackInfo.type || 'song'
+          drop_type: dropType
         });
 
       if (error) throw error;
