@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +44,7 @@ const Home = () => {
 
   const fetchRecentDrops = async () => {
     try {
+      setLoading(true);
       const { data: dropsData, error: dropsError } = await supabase
         .from('drops')
         .select(`
@@ -69,6 +71,8 @@ const Home = () => {
       }
     } catch (error) {
       console.error('Error fetching recent drops:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
