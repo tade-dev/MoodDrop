@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import MoodFeed from './pages/MoodFeed';
 import Explore from './pages/Explore';
+import Admin from './pages/Admin';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from './components/AppLayout';
 
@@ -35,6 +36,7 @@ function App() {
               <Route path="/create" element={<CreateDrop />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="/mood/:moodId" element={<MoodFeed />} />
             </Routes>
           </AppLayout>

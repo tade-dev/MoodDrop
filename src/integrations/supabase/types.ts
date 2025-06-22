@@ -129,6 +129,27 @@ export type Database = {
         }
         Relationships: []
       }
+      global_settings: {
+        Row: {
+          created_at: string
+          id: number
+          premium_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          premium_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          premium_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       moods: {
         Row: {
           created_at: string
@@ -240,6 +261,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          flagged: boolean
           id: string
           updated_at: string
           username: string
@@ -248,6 +270,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          flagged?: boolean
           id: string
           updated_at?: string
           username: string
@@ -256,6 +279,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          flagged?: boolean
           id?: string
           updated_at?: string
           username?: string
@@ -325,6 +349,54 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_drop: {
+        Args: { drop_id: string }
+        Returns: undefined
+      }
+      admin_delete_mood: {
+        Args: { mood_id: string }
+        Returns: undefined
+      }
+      admin_delete_user: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      admin_flag_user: {
+        Args: { user_id: string; flag_status: boolean }
+        Returns: undefined
+      }
+      get_all_drops_admin: {
+        Args: {
+          page_limit?: number
+          page_offset?: number
+          mood_filter?: string
+        }
+        Returns: {
+          id: string
+          song_title: string
+          artist_name: string
+          spotify_url: string
+          caption: string
+          mood_name: string
+          mood_emoji: string
+          username: string
+          user_email: string
+          vote_count: number
+          created_at: string
+        }[]
+      }
+      get_all_users_admin: {
+        Args: { page_limit?: number; page_offset?: number }
+        Returns: {
+          id: string
+          email: string
+          username: string
+          flagged: boolean
+          created_at: string
+          drops_count: number
+          total_votes: number
+        }[]
+      }
       get_hot_drops: {
         Args: { hours_back?: number; result_limit?: number }
         Returns: {
@@ -337,6 +409,19 @@ export type Database = {
           mood_emoji: string
           username: string
           vote_count: number
+          created_at: string
+        }[]
+      }
+      get_moods_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          emoji: string
+          is_custom: boolean
+          created_by: string
+          creator_username: string
+          drops_count: number
           created_at: string
         }[]
       }

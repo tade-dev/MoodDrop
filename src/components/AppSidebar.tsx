@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Plus, Search, User, LogOut, Music, Sparkles } from 'lucide-react';
+import { Home, Plus, Search, User, LogOut, Music, Sparkles, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
@@ -23,6 +23,7 @@ const AppSidebar = () => {
   const { user, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
+  const isSuperAdmin = user?.email === 'akintadeseun816@gmail.com';
 
   const menuItems = [
     { title: 'Home', url: '/home', icon: Home },
@@ -30,6 +31,11 @@ const AppSidebar = () => {
     { title: 'Create Drop', url: '/create', icon: Plus },
     { title: 'Profile', url: '/profile', icon: User },
   ];
+
+  // Add Admin item for super admin
+  if (isSuperAdmin) {
+    menuItems.push({ title: 'Admin', url: '/admin', icon: Shield });
+  }
 
   if (!user) return null;
   if (location.pathname === '/') return null;
@@ -66,7 +72,11 @@ const AppSidebar = () => {
                         : 'text-gray-300 hover:text-white hover:bg-white/10 hover:scale-105'
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${isActive(item.url) ? 'text-purple-300' : 'group-hover:text-purple-400'} transition-colors`} />
+                    <item.icon className={`w-5 h-5 ${
+                      isActive(item.url) ? 'text-purple-300' : 'group-hover:text-purple-400'
+                    } transition-colors ${
+                      item.title === 'Admin' ? 'text-yellow-400' : ''
+                    }`} />
                     <span className="font-medium">{item.title}</span>
                     {isActive(item.url) && (
                       <Sparkles className="w-3 h-3 text-purple-300 ml-auto animate-pulse" />
@@ -91,7 +101,14 @@ const AppSidebar = () => {
             <p className="text-sm font-medium text-white truncate">
               {user?.user_metadata?.username || user?.email?.split('@')[0]}
             </p>
-            <p className="text-xs text-gray-400">Vibe Creator</p>
+            <div className="flex items-center space-x-2">
+              <p className="text-xs text-gray-400">Vibe Creator</p>
+              {isSuperAdmin && (
+                <span className="text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-2 py-0.5 rounded-full font-bold">
+                  ADMIN
+                </span>
+              )}
+            </div>
           </div>
         </div>
         
