@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Plus, Compass, User, LogOut, Music, Sparkles } from 'lucide-react';
+import { Home, Plus, Search, User, LogOut, Music, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
@@ -26,8 +26,8 @@ const AppSidebar = () => {
 
   const menuItems = [
     { title: 'Home', url: '/home', icon: Home },
+    { title: 'Explore', url: '/explore', icon: Search },
     { title: 'Create Drop', url: '/create', icon: Plus },
-    { title: 'Explore', url: '/explore', icon: Compass },
     { title: 'Profile', url: '/profile', icon: User },
   ];
 

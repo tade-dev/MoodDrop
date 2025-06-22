@@ -9,6 +9,7 @@ import CreateDrop from './pages/CreateDrop';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import MoodFeed from './pages/MoodFeed';
+import Explore from './pages/Explore';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from './components/AppLayout';
 
@@ -23,6 +24,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
               <Route path="/create" element={<CreateDrop />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />

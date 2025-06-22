@@ -15,6 +15,9 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
           mood_id: string
           song_title: string
           spotify_url: string
@@ -26,6 +29,9 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           mood_id: string
           song_title: string
           spotify_url: string
@@ -37,6 +43,9 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
           mood_id?: string
           song_title?: string
           spotify_url?: string
@@ -49,6 +58,13 @@ export type Database = {
             columns: ["mood_id"]
             isOneToOne: false
             referencedRelation: "moods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drops_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -93,7 +109,75 @@ export type Database = {
             foreignKeyName: "moods_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "creator_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moods_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          cover_art_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          follower_count: number
+          id: string
+          is_featured: boolean
+          mood_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_art_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          follower_count?: number
+          id?: string
+          is_featured?: boolean
+          mood_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_art_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          follower_count?: number
+          id?: string
+          is_featured?: boolean
+          mood_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlists_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlists_mood_id_fkey"
+            columns: ["mood_id"]
+            isOneToOne: false
+            referencedRelation: "moods"
             referencedColumns: ["id"]
           },
         ]
@@ -162,6 +246,13 @@ export type Database = {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "creator_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -169,10 +260,62 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      creator_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          id: string | null
+          upvote_count: number | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_hot_drops: {
+        Args: { hours_back?: number; result_limit?: number }
+        Returns: {
+          id: string
+          song_title: string
+          artist_name: string
+          spotify_url: string
+          caption: string
+          mood_name: string
+          mood_emoji: string
+          username: string
+          vote_count: number
+          created_at: string
+        }[]
+      }
+      get_nearby_drops: {
+        Args: {
+          user_lat: number
+          user_lng: number
+          radius_km?: number
+          result_limit?: number
+        }
+        Returns: {
+          id: string
+          song_title: string
+          artist_name: string
+          spotify_url: string
+          caption: string
+          mood_name: string
+          mood_emoji: string
+          username: string
+          distance_km: number
+          created_at: string
+        }[]
+      }
+      get_trending_moods: {
+        Args: { hours_back?: number; result_limit?: number }
+        Returns: {
+          id: string
+          name: string
+          emoji: string
+          drop_count: number
+        }[]
+      }
     }
     Enums: {
       vote_type: "up" | "down" | "fire" | "chill"
