@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,9 @@ import { Heart, Flame, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
+import FollowButton from './FollowButton';
+import BookmarkButton from './BookmarkButton';
 
 interface DropCardProps {
   drop: {
@@ -18,6 +20,7 @@ interface DropCardProps {
     created_at: string;
     user_id: string;
     mood_id: string;
+    drop_type?: string;
     profiles?: {
       username: string;
       avatar_url?: string;
@@ -37,17 +40,65 @@ interface DropCardProps {
 const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
   const { user } = useAuth();
   const [isVoting, setIsVoting] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [followCheckLoading, setFollowCheckLoading] = useState(true);
+  const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
 
-  const getSpotifyEmbedUrl = (url: string) => {
-    const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
-    const playlistMatch = url.match(/playlist\/([a-zA-Z0-9]+)/);
-    
-    if (trackMatch) {
-      return `https://open.spotify.com/embed/track/${trackMatch[1]}`;
-    } else if (playlistMatch) {
-      return `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
+  useEffect(() => {
+    if (user && drop.user_id !== user.id) {
+      checkFollowStatus();
+    } else {
+      setFollowCheckLoading(false);
     }
-    return null;
+    
+    if (user) {
+      checkBookmarkStatus();
+    } else {
+      setBookmarkCheckLoading(false);
+    }
+  }, [user, drop.user_id, drop.id]);
+
+  const checkFollowStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', user.id)
+        .eq('followed_id', drop.user_id)
+        .maybeSingle();
+
+      if (!error) {
+        setIsFollowing(!!data);
+      }
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    } finally {
+      setFollowCheckLoading(false);
+    }
+  };
+
+  const checkBookmarkStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('drop_id', drop.id)
+        .maybeSingle();
+
+      if (!error) {
+        setIsBookmarked(!!data);
+      }
+    } catch (error) {
+      console.error('Error checking bookmark status:', error);
+    } finally {
+      setBookmarkCheckLoading(false);
+    }
   };
 
   const handleVote = async (voteType: 'fire' | 'down' | 'chill') => {
@@ -112,26 +163,37 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
     return user && votes.some(v => v.user_id === user.id && v.vote_type === voteType);
   };
 
-  const embedUrl = getSpotifyEmbedUrl(drop.spotify_url);
+  const embedUrl = getSpotifyEmbedUrl(drop.spotify_url, drop.drop_type);
 
   return (
     <Card className="bg-black/40 backdrop-blur-lg border-white/10 overflow-hidden">
       <div className="p-6">
         {/* User info */}
-        <div className="flex items-center space-x-3 mb-4">
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={drop.profiles?.avatar_url} />
-            <AvatarFallback className="bg-purple-600 text-white">
-              {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold text-white">{drop.profiles?.username || 'Anonymous'}</p>
-              <span className="text-2xl">{drop.moods?.emoji}</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={drop.profiles?.avatar_url} />
+              <AvatarFallback className="bg-purple-600 text-white">
+                {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <p className="font-semibold text-white">{drop.profiles?.username || 'Anonymous'}</p>
+                <span className="text-2xl">{drop.moods?.emoji}</span>
+              </div>
+              <p className="text-gray-400 text-sm">{drop.moods?.name}</p>
             </div>
-            <p className="text-gray-400 text-sm">{drop.moods?.name}</p>
           </div>
+
+          {!followCheckLoading && (
+            <FollowButton
+              targetUserId={drop.user_id}
+              isFollowing={isFollowing}
+              onFollowChange={checkFollowStatus}
+              username={drop.profiles?.username}
+            />
+          )}
         </div>
 
         {/* Song info */}
@@ -198,6 +260,14 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
               <Moon className="w-4 h-4 mr-1" />
               {getVoteCount('chill')}
             </Button>
+
+            {!bookmarkCheckLoading && (
+              <BookmarkButton
+                dropId={drop.id}
+                isBookmarked={isBookmarked}
+                onBookmarkChange={checkBookmarkStatus}
+              />
+            )}
           </div>
           
           <p className="text-gray-500 text-sm">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Zap, ThumbsUp, Play } from 'lucide-react';
+import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
 
 interface HotDropsGridProps {
   timeFilter: string;
@@ -27,11 +29,6 @@ const HotDropsGrid = ({ timeFilter, sortFilter }: HotDropsGridProps) => {
       return data;
     },
   });
-
-  const getSpotifyEmbedUrl = (spotifyUrl: string) => {
-    const trackId = spotifyUrl.split('/track/')[1]?.split('?')[0];
-    return `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
-  };
 
   if (isLoading) {
     return (

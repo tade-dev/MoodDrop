@@ -9,11 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          created_at: string
+          drop_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drop_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drop_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: false
+            referencedRelation: "drops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drops: {
         Row: {
           artist_name: string
           caption: string | null
           created_at: string
+          drop_type: string | null
           id: string
           latitude: number | null
           location_name: string | null
@@ -28,6 +58,7 @@ export type Database = {
           artist_name: string
           caption?: string | null
           created_at?: string
+          drop_type?: string | null
           id?: string
           latitude?: number | null
           location_name?: string | null
@@ -42,6 +73,7 @@ export type Database = {
           artist_name?: string
           caption?: string | null
           created_at?: string
+          drop_type?: string | null
           id?: string
           latitude?: number | null
           location_name?: string | null
@@ -75,6 +107,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          followed_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          followed_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          followed_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: []
       }
       moods: {
         Row: {
@@ -314,6 +367,19 @@ export type Database = {
           name: string
           emoji: string
           drop_count: number
+        }[]
+      }
+      get_user_profile_with_stats: {
+        Args: { profile_user_id: string }
+        Returns: {
+          id: string
+          username: string
+          email: string
+          avatar_url: string
+          created_at: string
+          followers_count: number
+          following_count: number
+          drops_count: number
         }[]
       }
     }

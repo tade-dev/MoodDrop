@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,9 @@ import { Heart, Flame, Moon, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getSpotifyEmbedUrl } from '@/utils/spotifyHelpers';
+import FollowButton from './FollowButton';
+import BookmarkButton from './BookmarkButton';
 
 interface EnhancedDropCardProps {
   drop: {
@@ -18,6 +20,7 @@ interface EnhancedDropCardProps {
     created_at: string;
     user_id: string;
     mood_id: string;
+    drop_type?: string;
     profiles?: {
       username: string;
       avatar_url?: string;
@@ -37,21 +40,69 @@ interface EnhancedDropCardProps {
 const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) => {
   const { user } = useAuth();
   const [isVoting, setIsVoting] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [followCheckLoading, setFollowCheckLoading] = useState(true);
+  const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
   const [votePopup, setVotePopup] = useState<{
     type: 'fire' | 'down' | 'chill' | null;
     show: boolean;
   }>({ type: null, show: false });
 
-  const getSpotifyEmbedUrl = (url: string) => {
-    const trackMatch = url.match(/track\/([a-zA-Z0-9]+)/);
-    const playlistMatch = url.match(/playlist\/([a-zA-Z0-9]+)/);
-    
-    if (trackMatch) {
-      return `https://open.spotify.com/embed/track/${trackMatch[1]}`;
-    } else if (playlistMatch) {
-      return `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
+  useEffect(() => {
+    if (user && drop.user_id !== user.id) {
+      checkFollowStatus();
+    } else {
+      setFollowCheckLoading(false);
     }
-    return null;
+    
+    if (user) {
+      checkBookmarkStatus();
+    } else {
+      setBookmarkCheckLoading(false);
+    }
+  }, [user, drop.user_id, drop.id]);
+
+  const checkFollowStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', user.id)
+        .eq('followed_id', drop.user_id)
+        .maybeSingle();
+
+      if (!error) {
+        setIsFollowing(!!data);
+      }
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    } finally {
+      setFollowCheckLoading(false);
+    }
+  };
+
+  const checkBookmarkStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('drop_id', drop.id)
+        .maybeSingle();
+
+      if (!error) {
+        setIsBookmarked(!!data);
+      }
+    } catch (error) {
+      console.error('Error checking bookmark status:', error);
+    } finally {
+      setBookmarkCheckLoading(false);
+    }
   };
 
   const triggerVoteAnimation = (voteType: 'fire' | 'down' | 'chill') => {
@@ -122,9 +173,6 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
     return user && votes.some(v => v.user_id === user.id && v.vote_type === voteType);
   };
 
-  const embedUrl = getSpotifyEmbedUrl(drop.spotify_url);
-  const timeAgo = new Date(drop.created_at).toLocaleDateString();
-
   const getVoteEmoji = (voteType: 'fire' | 'down' | 'chill') => {
     switch (voteType) {
       case 'fire': return '🔥';
@@ -133,6 +181,9 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
       default: return '';
     }
   };
+
+  const embedUrl = getSpotifyEmbedUrl(drop.spotify_url, drop.drop_type);
+  const timeAgo = new Date(drop.created_at).toLocaleDateString();
 
   return (
     <Card className="group relative overflow-hidden bg-gradient-to-br from-black/80 via-purple-900/30 to-pink-900/30 backdrop-blur-xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20 animate-fade-in">
@@ -161,7 +212,7 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
                 {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <p className="font-semibold text-white">{drop.profiles?.username || 'Anonymous'}</p>
                 <span className="text-2xl animate-pulse">{drop.moods?.emoji}</span>
@@ -170,13 +221,24 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
             </div>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            {!followCheckLoading && (
+              <FollowButton
+                targetUserId={drop.user_id}
+                isFollowing={isFollowing}
+                onFollowChange={checkFollowStatus}
+                username={drop.profiles?.username}
+              />
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Song Info */}
@@ -254,6 +316,14 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
               <Moon className={`w-4 h-4 ${hasUserVoted('chill') ? 'animate-spin-slow' : 'group-hover/btn:animate-pulse'}`} />
               <span className="text-sm font-medium">{getVoteCount('chill')}</span>
             </Button>
+            
+            {!bookmarkCheckLoading && (
+              <BookmarkButton
+                dropId={drop.id}
+                isBookmarked={isBookmarked}
+                onBookmarkChange={checkBookmarkStatus}
+              />
+            )}
           </div>
           
           <p className="text-gray-500 text-xs font-medium bg-white/5 px-3 py-1 rounded-full">
