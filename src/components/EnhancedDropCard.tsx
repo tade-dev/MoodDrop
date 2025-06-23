@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -267,7 +266,11 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
             <DropActionsMenu
               dropId={drop.id}
               userId={drop.user_id}
-              onDropDeleted={onVote}
+              onDropDeleted={() => {
+                // For deletion, we might want to remove the drop from the parent's list
+                // But for now, we'll let the parent handle it
+                console.log('Drop deleted, parent should handle removal');
+              }}
               onDropEdit={() => {
                 toast({
                   title: "Coming soon",

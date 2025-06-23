@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,6 +73,31 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVoteUpdate = async (dropId: string) => {
+    // Refetch only the votes for this specific drop to update the UI
+    try {
+      const { data: updatedVotes, error } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('drop_id', dropId);
+
+      if (!error && updatedVotes) {
+        // Update the votes state by replacing votes for this drop
+        setVotes(prevVotes => {
+          const otherVotes = prevVotes.filter(vote => vote.drop_id !== dropId);
+          return [...otherVotes, ...updatedVotes];
+        });
+      }
+    } catch (error) {
+      console.error('Error updating votes:', error);
+    }
+  };
+
+  const handleDropDeleted = () => {
+    // Only refetch everything when a drop is deleted
+    fetchRecentDrops();
   };
 
   const getDropVotes = (dropId: string) => {
@@ -157,7 +181,7 @@ const Home = () => {
                   <EnhancedDropCard
                     drop={drop}
                     votes={getDropVotes(drop.id)}
-                    onVote={fetchRecentDrops}
+                    onVote={() => handleVoteUpdate(drop.id)}
                   />
                 </div>
               ))}
