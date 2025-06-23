@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,41 +107,41 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen px-4">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white text-lg animate-pulse">Loading your vibes...</p>
+          <p className="text-white text-base sm:text-lg animate-pulse text-center">Loading your vibes...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen mobile-padding py-4 sm:py-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
+        <div className="mb-6 sm:mb-8 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
+            <div className="text-center sm:text-left">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
                 Welcome back! 🎵
               </h1>
-              <p className="text-gray-300 text-lg">
+              <p className="text-gray-300 text-base sm:text-lg">
                 Ready to drop some fresh vibes today?
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button
                 onClick={() => navigate('/moods')}
                 variant="outline"
-                className="bg-white/5 border-white/20 text-white hover:bg-white/10 font-semibold px-4 py-2 rounded-full"
+                className="bg-white/5 border-white/20 text-white hover:bg-white/10 font-semibold px-4 py-2 rounded-full w-full sm:w-auto"
               >
                 <Palette className="w-4 h-4 mr-2" />
                 Moods
               </Button>
               <Button
                 onClick={() => navigate('/create')}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 w-full sm:w-auto"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Create Drop
@@ -150,28 +151,28 @@ const Home = () => {
         </div>
 
         {/* Main Feed */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-              <TrendingUp className="w-6 h-6 text-purple-400" />
+            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
               <span>Latest Vibes</span>
             </h2>
           </div>
 
           {recentDrops.length === 0 ? (
-            <div className="text-center py-12 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
-              <Music2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No drops yet</h3>
-              <p className="text-gray-400 mb-6">Be the first to share your musical vibe!</p>
+            <div className="text-center py-8 sm:py-12 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mx-2 sm:mx-0">
+              <Music2 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No drops yet</h3>
+              <p className="text-gray-400 mb-4 sm:mb-6 px-4">Be the first to share your musical vibe!</p>
               <Button
                 onClick={() => navigate('/create')}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-full max-w-xs mx-auto"
               >
                 Create First Drop
               </Button>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {recentDrops.map((drop, index) => (
                 <div
                   key={drop.id}
