@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Loader2 } from 'lucide-react';
+import { Crown, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,13 +14,17 @@ const PremiumToggle = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: settings, isLoading } = useQuery({
+  // Check if current user is the authorized admin
+  const isAuthorizedAdmin = user?.email === 'akintadeseun816@gmail.com';
+
+  const { data: settings, isLoading, error } = useQuery({
     queryKey: ['global-settings'],
     queryFn: async () => {
       console.log('Fetching global settings...');
       const { data, error } = await supabase
         .from('global_settings')
         .select('*')
+        .eq('id', 1)
         .single();
       
       if (error) {
@@ -30,15 +34,16 @@ const PremiumToggle = () => {
       console.log('Global settings fetched:', data);
       return data;
     },
+    enabled: isAuthorizedAdmin, // Only fetch if authorized
   });
 
   const updatePremiumMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       console.log('Updating premium setting to:', enabled);
       
-      // Check if user is admin before making the request
-      if (!user || user.email !== 'akintadeseun816@gmail.com') {
-        throw new Error('Access denied: Admin only');
+      // Double-check authorization before making the request
+      if (!isAuthorizedAdmin) {
+        throw new Error('Access denied: Unauthorized account');
       }
       
       const { error } = await supabase
@@ -54,8 +59,9 @@ const PremiumToggle = () => {
         throw error;
       }
       console.log('Premium setting updated successfully');
+      return enabled;
     },
-    onSuccess: (_, enabled) => {
+    onSuccess: (enabled) => {
       queryClient.invalidateQueries({ queryKey: ['global-settings'] });
       toast({
         title: "Premium Settings Updated",
@@ -73,15 +79,62 @@ const PremiumToggle = () => {
   });
 
   const handleToggle = (checked: boolean) => {
+    if (!isAuthorizedAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only the super admin can modify premium settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log('Toggle clicked, new value:', checked);
     updatePremiumMutation.mutate(checked);
   };
+
+  // Show unauthorized message if not the correct admin
+  if (!isAuthorizedAdmin) {
+    return (
+      <Card className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-400/30">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3 text-red-400">
+            <AlertTriangle className="w-6 h-6" />
+            <div>
+              <h3 className="font-semibold">Access Restricted</h3>
+              <p className="text-sm text-gray-400">
+                Only the super admin (akintadeseun816@gmail.com) can access premium settings.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+        <span className="ml-2 text-gray-400">Loading premium settings...</span>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-400/30">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3 text-red-400">
+            <AlertTriangle className="w-6 h-6" />
+            <div>
+              <h3 className="font-semibold">Error Loading Settings</h3>
+              <p className="text-sm text-gray-400">
+                Failed to load premium settings. Please try refreshing the page.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -101,7 +154,7 @@ const PremiumToggle = () => {
           <div>
             <h3 className="text-white font-medium">Global Premium Toggle</h3>
             <p className="text-gray-400 text-sm">
-              Enable or disable premium features across the entire platform
+              Control premium features across the entire platform
             </p>
           </div>
           <Switch
@@ -113,13 +166,18 @@ const PremiumToggle = () => {
         </div>
         
         <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-          <h4 className="text-white font-medium mb-2">Premium Features Include:</h4>
+          <h4 className="text-white font-medium mb-2">Current Status:</h4>
+          <p className="text-gray-300 text-sm mb-3">
+            Premium features are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong> for all users.
+          </p>
+          
+          <h4 className="text-white font-medium mb-2">What this controls:</h4>
           <ul className="text-gray-300 text-sm space-y-1">
-            <li>• Advanced mood filtering</li>
+            <li>• User access to premium-only features</li>
+            <li>• Advanced mood filtering options</li>
             <li>• Unlimited playlist creation</li>
             <li>• Priority drop visibility</li>
             <li>• Custom profile themes</li>
-            <li>• Analytics dashboard</li>
           </ul>
         </div>
 
@@ -129,6 +187,11 @@ const PremiumToggle = () => {
             <span className="text-gray-400 text-sm">Updating settings...</span>
           </div>
         )}
+
+        <div className="text-xs text-gray-500 border-t border-white/10 pt-3">
+          <p>Last updated: {settings?.updated_at ? new Date(settings.updated_at).toLocaleString() : 'Never'}</p>
+          <p>Authorized admin: akintadeseun816@gmail.com</p>
+        </div>
       </CardContent>
     </Card>
   );

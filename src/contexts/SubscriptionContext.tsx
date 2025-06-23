@@ -32,17 +32,24 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const fetchGlobalSettings = async () => {
     try {
+      console.log('Fetching global premium settings...');
       const { data, error } = await supabase
         .from('global_settings')
         .select('premium_enabled')
         .eq('id', 1)
         .single();
       
-      if (error) throw error;
-      setGlobalPremiumEnabled(data?.premium_enabled || false);
-      console.log('Global premium enabled:', data?.premium_enabled);
+      if (error) {
+        console.error('Error fetching global settings:', error);
+        setGlobalPremiumEnabled(false);
+        return;
+      }
+      
+      const premiumEnabled = data?.premium_enabled || false;
+      setGlobalPremiumEnabled(premiumEnabled);
+      console.log('Global premium enabled:', premiumEnabled);
     } catch (error) {
-      console.error('Error fetching global settings:', error);
+      console.error('Error in fetchGlobalSettings:', error);
       setGlobalPremiumEnabled(false);
     }
   };
@@ -54,20 +61,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return;
     }
 
-    // Admin users automatically have premium access
-    if (isAdmin) {
-      setSubscription({
-        id: 'admin',
-        plan: 'admin',
-        status: 'active',
-        current_period_end: '2099-12-31T23:59:59Z', // Far future date
-        is_premium: true
-      });
-      setIsLoading(false);
-      return;
-    }
+    setIsLoading(true);
 
     try {
+      // Admin users automatically have premium access
+      if (isAdmin) {
+        setSubscription({
+          id: 'admin',
+          plan: 'admin',
+          status: 'active',
+          current_period_end: '2099-12-31T23:59:59Z',
+          is_premium: true
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // For regular users, check their subscription
       const { data, error } = await supabase.rpc('get_user_subscription');
       
       if (error) {
@@ -91,9 +101,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [user, isAdmin]);
 
-  // Fixed premium logic: When premium is OFF (false), everyone has access
-  // When premium is ON (true), only subscribers or admin have access
+  // Premium logic:
+  // - Admin always has premium
+  // - When premium is globally DISABLED: everyone has access (free for all)
+  // - When premium is globally ENABLED: only subscribers and admin have access
   const isPremium = isAdmin || (!globalPremiumEnabled || (subscription?.is_premium || false));
+
+  console.log('Premium Context State:', {
+    isAdmin,
+    globalPremiumEnabled,
+    hasSubscription: !!subscription,
+    subscriptionPremium: subscription?.is_premium,
+    finalIsPremium: isPremium
+  });
 
   return (
     <SubscriptionContext.Provider value={{
