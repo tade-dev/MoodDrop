@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Crown, Loader2, AlertTriangle, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,15 +34,14 @@ const PremiumToggle = () => {
       console.log('Global settings fetched:', data);
       return data;
     },
-    enabled: isAuthorizedAdmin, // Only fetch if authorized
-    retry: 1, // Reduce retries to fail faster on permission errors
+    enabled: isAuthorizedAdmin,
+    retry: 1,
   });
 
   const updatePremiumMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       console.log('Updating premium setting to:', enabled);
       
-      // Double-check authorization before making the request
       if (!isAuthorizedAdmin) {
         throw new Error('Access denied: Only the super admin can modify premium settings');
       }
@@ -64,7 +63,6 @@ const PremiumToggle = () => {
     },
     onSuccess: (enabled) => {
       queryClient.invalidateQueries({ queryKey: ['global-settings'] });
-      // Also invalidate subscription context to update premium states
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       toast({
         title: "Premium Settings Updated",
@@ -95,7 +93,6 @@ const PremiumToggle = () => {
     updatePremiumMutation.mutate(checked);
   };
 
-  // Show unauthorized message if not the correct admin
   if (!isAuthorizedAdmin) {
     return (
       <Card className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-400/30">
@@ -149,72 +146,81 @@ const PremiumToggle = () => {
   }
 
   return (
-    <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-400/30">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center space-x-2">
-          <Crown className="w-5 h-5 text-yellow-400" />
-          <span>Premium Features Control</span>
-          <Badge variant={settings?.premium_enabled ? "default" : "secondary"}>
-            {settings?.premium_enabled ? "ACTIVE" : "INACTIVE"}
-          </Badge>
-          <Shield className="w-4 h-4 text-green-400 ml-auto" title="Secure Admin Access" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-white font-medium">Global Premium Toggle</h3>
-            <p className="text-gray-400 text-sm">
-              Control premium features across the entire platform
-            </p>
+    <TooltipProvider>
+      <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-400/30">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center space-x-2">
+            <Crown className="w-5 h-5 text-yellow-400" />
+            <span>Premium Features Control</span>
+            <Badge variant={settings?.premium_enabled ? "default" : "secondary"}>
+              {settings?.premium_enabled ? "ACTIVE" : "INACTIVE"}
+            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Shield className="w-4 h-4 text-green-400 ml-auto" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Secure Admin Access</p>
+              </TooltipContent>
+            </Tooltip>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white font-medium">Global Premium Toggle</h3>
+              <p className="text-gray-400 text-sm">
+                Control premium features across the entire platform
+              </p>
+            </div>
+            <Switch
+              checked={settings?.premium_enabled || false}
+              onCheckedChange={handleToggle}
+              disabled={updatePremiumMutation.isPending}
+              className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500"
+            />
           </div>
-          <Switch
-            checked={settings?.premium_enabled || false}
-            onCheckedChange={handleToggle}
-            disabled={updatePremiumMutation.isPending}
-            className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500"
-          />
-        </div>
-        
-        <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-          <h4 className="text-white font-medium mb-2">Current Status:</h4>
-          <p className="text-gray-300 text-sm mb-3">
-            Premium features are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong> for all users.
-          </p>
           
-          <h4 className="text-white font-medium mb-2">Premium Access Logic:</h4>
-          <ul className="text-gray-300 text-sm space-y-1">
-            <li>• <strong>Admin:</strong> Always has premium access</li>
-            <li>• <strong>When DISABLED:</strong> All users get free access to everything</li>
-            <li>• <strong>When ENABLED:</strong> Only subscribers + admin have premium features</li>
-          </ul>
-        </div>
-
-        <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-          <h4 className="text-white font-medium mb-2">Premium Features Include:</h4>
-          <ul className="text-gray-300 text-sm space-y-1">
-            <li>• Advanced mood filtering options</li>
-            <li>• Unlimited playlist creation</li>
-            <li>• Priority drop visibility</li>
-            <li>• Custom profile themes</li>
-            <li>• Enhanced analytics</li>
-          </ul>
-        </div>
-
-        {updatePremiumMutation.isPending && (
-          <div className="flex items-center justify-center p-2">
-            <Loader2 className="w-4 h-4 animate-spin text-purple-400 mr-2" />
-            <span className="text-gray-400 text-sm">Updating settings...</span>
+          <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
+            <h4 className="text-white font-medium mb-2">Current Status:</h4>
+            <p className="text-gray-300 text-sm mb-3">
+              Premium features are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong> for all users.
+            </p>
+            
+            <h4 className="text-white font-medium mb-2">Premium Access Logic:</h4>
+            <ul className="text-gray-300 text-sm space-y-1">
+              <li>• <strong>Admin:</strong> Always has premium access</li>
+              <li>• <strong>When DISABLED:</strong> All users get free access to everything</li>
+              <li>• <strong>When ENABLED:</strong> Only subscribers + admin have premium features</li>
+            </ul>
           </div>
-        )}
 
-        <div className="text-xs text-gray-500 border-t border-white/10 pt-3">
-          <p>Last updated: {settings?.updated_at ? new Date(settings.updated_at).toLocaleString() : 'Never'}</p>
-          <p>Authorized admin: akintadeseun816@gmail.com</p>
-          <p>Security: Protected by RLS policies</p>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
+            <h4 className="text-white font-medium mb-2">Premium Features Include:</h4>
+            <ul className="text-gray-300 text-sm space-y-1">
+              <li>• Advanced mood filtering options</li>
+              <li>• Unlimited playlist creation</li>
+              <li>• Priority drop visibility</li>
+              <li>• Custom profile themes</li>
+              <li>• Enhanced analytics</li>
+            </ul>
+          </div>
+
+          {updatePremiumMutation.isPending && (
+            <div className="flex items-center justify-center p-2">
+              <Loader2 className="w-4 h-4 animate-spin text-purple-400 mr-2" />
+              <span className="text-gray-400 text-sm">Updating settings...</span>
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500 border-t border-white/10 pt-3">
+            <p>Last updated: {settings?.updated_at ? new Date(settings.updated_at).toLocaleString() : 'Never'}</p>
+            <p>Authorized admin: akintadeseun816@gmail.com</p>
+            <p>Security: Protected by RLS policies</p>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
 
