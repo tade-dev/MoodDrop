@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Music, Mail, Lock, User } from 'lucide-react';
-import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -58,7 +57,7 @@ const Auth = () => {
         });
       } else {
         toast({
-          title: "Welcome to VibeCheck!",
+          title: "Welcome to MoodDrop!",
           description: "Your account has been created successfully.",
         });
         navigate('/home');
@@ -115,7 +114,7 @@ const Auth = () => {
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Music className="w-8 h-8 text-purple-400" />
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              VibeCheck
+              MoodDrop
             </CardTitle>
           </div>
           <CardDescription className="text-gray-300">
@@ -135,19 +134,6 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="signin" className="space-y-4 mt-6">
-              <div className="space-y-4">
-                <GoogleAuthButton />
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-black/40 px-2 text-gray-400">Or continue with email</span>
-                  </div>
-                </div>
-              </div>
-
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signin-email" className="text-white">Email</Label>
@@ -192,19 +178,6 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4 mt-6">
-              <div className="space-y-4">
-                <GoogleAuthButton />
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-black/40 px-2 text-gray-400">Or create account with email</span>
-                  </div>
-                </div>
-              </div>
-
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-username" className="text-white">Username</Label>
