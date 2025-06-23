@@ -101,6 +101,31 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     refreshSubscription();
   }, [user, isAdmin]);
 
+  // Set up real-time subscription to global settings changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('global-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'global_settings'
+        },
+        (payload) => {
+          console.log('Global settings changed:', payload);
+          if (payload.new?.premium_enabled !== undefined) {
+            setGlobalPremiumEnabled(payload.new.premium_enabled);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Premium logic:
   // - Admin always has premium
   // - When premium is globally DISABLED: everyone has access (free for all)
