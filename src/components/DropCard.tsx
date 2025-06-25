@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Heart, Flame, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,7 @@ interface DropCardProps {
     created_at: string;
     user_id: string;
     mood_id: string;
+    mood_ids?: string[];
     drop_type?: string;
     profiles?: {
       username: string;
@@ -44,6 +46,7 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followCheckLoading, setFollowCheckLoading] = useState(true);
   const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
+  const [dropMoods, setDropMoods] = useState<any[]>([]);
 
   useEffect(() => {
     if (user && drop.user_id !== user.id) {
@@ -57,7 +60,25 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
     } else {
       setBookmarkCheckLoading(false);
     }
-  }, [user, drop.user_id, drop.id]);
+
+    fetchDropMoods();
+  }, [user, drop.user_id, drop.id, drop.mood_ids, drop.moods]);
+
+  const fetchDropMoods = async () => {
+    if (drop.mood_ids && drop.mood_ids.length > 0) {
+      const { data, error } = await supabase
+        .from('moods')
+        .select('id, name, emoji')
+        .in('id', drop.mood_ids);
+      
+      if (!error && data) {
+        setDropMoods(data);
+      }
+    } else if (drop.moods) {
+      // Fallback to single mood for backward compatibility
+      setDropMoods([drop.moods]);
+    }
+  };
 
   const checkFollowStatus = async () => {
     if (!user) return;
@@ -180,9 +201,21 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
             <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <p className="font-semibold text-white">{drop.profiles?.username || 'Anonymous'}</p>
-                <span className="text-2xl">{drop.moods?.emoji}</span>
               </div>
-              <p className="text-gray-400 text-sm">{drop.moods?.name}</p>
+              {/* Multiple Mood Badges */}
+              {dropMoods.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {dropMoods.map((mood) => (
+                    <Badge 
+                      key={mood.id}
+                      variant="secondary" 
+                      className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs px-2 py-0.5"
+                    >
+                      {mood.emoji} {mood.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

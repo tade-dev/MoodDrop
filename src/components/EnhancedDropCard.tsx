@@ -29,6 +29,7 @@ interface Drop {
   created_at: string;
   user_id: string;
   mood_id: string;
+  mood_ids?: string[];
   drop_type?: string;
   profiles?: {
     username: string;
@@ -58,11 +59,33 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
   const [commentCount, setCommentCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [dropMoods, setDropMoods] = useState<any[]>([]);
 
   // Calculate vote counts - treating 'up' and 'fire' as upvotes, 'down' and 'chill' as downvotes
   const upvotes = votes.filter(vote => vote.vote_type === 'up' || vote.vote_type === 'fire').length;
   const downvotes = votes.filter(vote => vote.vote_type === 'down' || vote.vote_type === 'chill').length;
   const userVote = votes.find(vote => vote.user_id === user?.id);
+
+  // Fetch moods if drop has mood_ids array
+  useEffect(() => {
+    const fetchDropMoods = async () => {
+      if (drop.mood_ids && drop.mood_ids.length > 0) {
+        const { data, error } = await supabase
+          .from('moods')
+          .select('id, name, emoji')
+          .in('id', drop.mood_ids);
+        
+        if (!error && data) {
+          setDropMoods(data);
+        }
+      } else if (drop.moods) {
+        // Fallback to single mood for backward compatibility
+        setDropMoods([drop.moods]);
+      }
+    };
+
+    fetchDropMoods();
+  }, [drop.mood_ids, drop.moods]);
 
   // Check if drop is bookmarked
   useEffect(() => {
@@ -130,17 +153,6 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
               </p>
               <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-400">
                 <span>{formatDistanceToNow(new Date(drop.created_at), { addSuffix: true })}</span>
-                {drop.moods && (
-                  <>
-                    <span>•</span>
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs px-2 py-0.5"
-                    >
-                      {drop.moods.emoji} {drop.moods.name}
-                    </Badge>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -151,6 +163,21 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
             onDropDeleted={onDropDeleted}
           />
         </div>
+
+        {/* Multiple Mood Badges */}
+        {dropMoods.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {dropMoods.map((mood) => (
+              <Badge 
+                key={mood.id}
+                variant="secondary" 
+                className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs px-2 py-1"
+              >
+                {mood.emoji} {mood.name}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         {/* Caption */}
         {drop.caption && (

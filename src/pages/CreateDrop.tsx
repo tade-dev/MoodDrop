@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Music, MapPin, Sparkles, AlertCircle, Crown } from 'lucide-react';
@@ -143,30 +142,25 @@ const CreateDrop = () => {
         throw new Error(validation.error || 'Please enter a valid Spotify URL');
       }
 
-      // Create multiple drops for each selected mood
-      const dropPromises = selectedMoods.map(moodId => 
-        supabase
-          .from('drops')
-          .insert({
-            user_id: user.id,
-            spotify_url: spotifyUrl,
-            artist_name: artistName.trim() || 'Unknown Artist',
-            song_title: songTitle.trim() || 'Untitled',
-            caption: caption.trim() || null,
-            mood_id: moodId,
-            latitude: userLocation?.lat || null,
-            longitude: userLocation?.lng || null,
-            drop_type: dropType
-          })
-      );
+      // Create a single drop with multiple moods
+      const { data, error } = await supabase
+        .from('drops')
+        .insert({
+          user_id: user.id,
+          spotify_url: spotifyUrl,
+          artist_name: artistName.trim() || 'Unknown Artist',
+          song_title: songTitle.trim() || 'Untitled',
+          caption: caption.trim() || null,
+          mood_id: selectedMoods[0], // Keep first mood for backward compatibility
+          mood_ids: selectedMoods, // New multi-mood field
+          latitude: userLocation?.lat || null,
+          longitude: userLocation?.lng || null,
+          drop_type: dropType
+        })
+        .select()
+        .single();
 
-      const results = await Promise.all(dropPromises);
-      
-      // Check if any inserts failed
-      const failedInserts = results.filter(result => result.error);
-      if (failedInserts.length > 0) {
-        throw new Error(failedInserts[0].error.message);
-      }
+      if (error) throw error;
 
       // Increment monthly drop count for non-premium users
       if (!isPremium) {

@@ -15,6 +15,7 @@ interface Drop {
   created_at: string;
   user_id: string;
   mood_id: string;
+  mood_ids?: string[];
   profiles?: {
     username: string;
     avatar_url?: string;
@@ -51,7 +52,7 @@ const MoodFeed = () => {
       if (moodError) throw moodError;
       setMood(moodData);
 
-      // Fetch drops for this mood
+      // Fetch drops for this mood - check both mood_id and mood_ids array
       const { data: dropsData, error: dropsError } = await supabase
         .from('drops')
         .select(`
@@ -59,7 +60,7 @@ const MoodFeed = () => {
           profiles (username, avatar_url),
           moods (name, emoji)
         `)
-        .eq('mood_id', moodId)
+        .or(`mood_id.eq.${moodId},mood_ids.cs.{${moodId}}`)
         .order('created_at', { ascending: false });
 
       if (dropsError) throw dropsError;

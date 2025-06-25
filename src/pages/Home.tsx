@@ -17,6 +17,7 @@ interface Drop {
   created_at: string;
   user_id: string;
   mood_id: string;
+  mood_ids?: string[];
   profiles?: {
     username: string;
     avatar_url?: string;
