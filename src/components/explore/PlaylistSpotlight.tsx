@@ -5,8 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Heart, Users, Plus } from 'lucide-react';
+import { Heart, Users, Plus, UserPlus } from 'lucide-react';
 
 const PlaylistSpotlight = () => {
   const { data: playlists, isLoading } = useQuery({
@@ -17,7 +18,7 @@ const PlaylistSpotlight = () => {
         .select(`
           *,
           moods(name, emoji),
-          profiles(username)
+          profiles(username, avatar_url)
         `)
         .eq('is_featured', true)
         .order('created_at', { ascending: false })
@@ -57,6 +58,14 @@ const PlaylistSpotlight = () => {
                     <div className="text-6xl opacity-50">🎵</div>
                   )}
                   
+                  {/* Collaboration badge */}
+                  {playlist.is_collab && (
+                    <Badge className="absolute top-2 left-2 bg-green-500/20 text-green-300 border-green-400/30">
+                      <UserPlus className="w-3 h-3 mr-1" />
+                      Collab
+                    </Badge>
+                  )}
+                  
                   {/* Overlay buttons */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
                     <Button size="sm" className="bg-white/20 hover:bg-white/30">
@@ -81,7 +90,7 @@ const PlaylistSpotlight = () => {
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {playlist.moods && (
                         <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
@@ -96,7 +105,28 @@ const PlaylistSpotlight = () => {
                     </div>
                   </div>
 
-                  <div className="mt-3 text-xs text-gray-500">
+                  {/* Collaborators */}
+                  {playlist.is_collab && playlist.contributors && playlist.contributors.length > 0 && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs text-gray-500">Collaborators:</span>
+                      <div className="flex -space-x-2">
+                        {playlist.contributors.slice(0, 3).map((contributorId, index) => (
+                          <Avatar key={contributorId} className="w-6 h-6 border-2 border-black">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white text-xs">
+                              {index + 1}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {playlist.contributors.length > 3 && (
+                          <div className="w-6 h-6 rounded-full bg-gray-600 border-2 border-black flex items-center justify-center">
+                            <span className="text-xs text-white">+{playlist.contributors.length - 3}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-500">
                     by @{playlist.profiles?.username}
                   </div>
                 </div>

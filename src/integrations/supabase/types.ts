@@ -38,6 +38,100 @@ export type Database = {
           },
         ]
       }
+      challenges: {
+        Row: {
+          created_at: string
+          end_at: string
+          id: string
+          mood_id: string
+          prompt: string
+          start_at: string
+          winner_drop_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_at: string
+          id?: string
+          mood_id: string
+          prompt: string
+          start_at: string
+          winner_drop_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_at?: string
+          id?: string
+          mood_id?: string
+          prompt?: string
+          start_at?: string
+          winner_drop_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_mood_id_fkey"
+            columns: ["mood_id"]
+            isOneToOne: false
+            referencedRelation: "moods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_winner_drop_id_fkey"
+            columns: ["winner_drop_id"]
+            isOneToOne: false
+            referencedRelation: "drops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          created_at: string
+          drop_id: string
+          id: string
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drop_id: string
+          id?: string
+          text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drop_id?: string
+          id?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: false
+            referencedRelation: "drops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_drops: {
         Row: {
           created_at: string
@@ -66,6 +160,8 @@ export type Database = {
         Row: {
           artist_name: string
           caption: string | null
+          challenge_id: string | null
+          challenge_winner: boolean | null
           created_at: string
           drop_type: string | null
           id: string
@@ -81,6 +177,8 @@ export type Database = {
         Insert: {
           artist_name: string
           caption?: string | null
+          challenge_id?: string | null
+          challenge_winner?: boolean | null
           created_at?: string
           drop_type?: string | null
           id?: string
@@ -96,6 +194,8 @@ export type Database = {
         Update: {
           artist_name?: string
           caption?: string | null
+          challenge_id?: string | null
+          challenge_winner?: boolean | null
           created_at?: string
           drop_type?: string | null
           id?: string
@@ -109,6 +209,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "drops_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "drops_mood_id_fkey"
             columns: ["mood_id"]
@@ -219,38 +326,97 @@ export type Database = {
           },
         ]
       }
+      playlist_tracks: {
+        Row: {
+          added_by: string
+          created_at: string
+          drop_id: string
+          id: string
+          playlist_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          drop_id: string
+          id?: string
+          playlist_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          drop_id?: string
+          id?: string
+          playlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "creator_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_tracks_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: false
+            referencedRelation: "drops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_tracks_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playlists: {
         Row: {
+          contributors: string[] | null
           cover_art_url: string | null
           created_at: string
           created_by: string
           description: string | null
           follower_count: number
           id: string
+          is_collab: boolean | null
           is_featured: boolean
           mood_id: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          contributors?: string[] | null
           cover_art_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
           follower_count?: number
           id?: string
+          is_collab?: boolean | null
           is_featured?: boolean
           mood_id?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          contributors?: string[] | null
           cover_art_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           follower_count?: number
           id?: string
+          is_collab?: boolean | null
           is_featured?: boolean
           mood_id?: string | null
           title?: string
@@ -429,6 +595,14 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: boolean
       }
+      create_weekly_challenge: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      finalize_challenge: {
+        Args: { challenge_id: string }
+        Returns: undefined
+      }
       get_admin_subscriptions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -471,6 +645,18 @@ export type Database = {
           created_at: string
           drops_count: number
           total_votes: number
+        }[]
+      }
+      get_current_challenge: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          prompt: string
+          mood_id: string
+          mood_name: string
+          mood_emoji: string
+          start_at: string
+          end_at: string
         }[]
       }
       get_hot_drops: {

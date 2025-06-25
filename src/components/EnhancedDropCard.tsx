@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, Flame, Moon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Heart, Flame, Moon, Crown, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +13,7 @@ import FollowButton from './FollowButton';
 import BookmarkButton from './BookmarkButton';
 import PremiumGlow from './PremiumGlow';
 import DropActionsMenu from './DropActionsMenu';
+import VibeThreads from './VibeThreads';
 
 interface EnhancedDropCardProps {
   drop: {
@@ -32,6 +34,7 @@ interface EnhancedDropCardProps {
       name: string;
       emoji: string;
     };
+    challenge_winner?: boolean;
   };
   votes?: Array<{
     vote_type: 'fire' | 'down' | 'chill';
@@ -49,6 +52,7 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
   const [followCheckLoading, setFollowCheckLoading] = useState(true);
   const [bookmarkCheckLoading, setBookmarkCheckLoading] = useState(true);
   const [isDropCreatorPremium, setIsDropCreatorPremium] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
   const [votePopup, setVotePopup] = useState<{
     type: 'fire' | 'down' | 'chill' | null;
     show: boolean;
@@ -69,7 +73,25 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
 
     // Check if drop creator is premium
     checkDropCreatorPremium();
+    
+    // Fetch initial comment count
+    fetchCommentCount();
   }, [user, drop.user_id, drop.id]);
+
+  const fetchCommentCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('drop_id', drop.id);
+      
+      if (!error) {
+        setCommentCount(count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching comment count:', error);
+    }
+  };
 
   const checkDropCreatorPremium = async () => {
     try {
@@ -208,6 +230,16 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
 
   return (
     <Card className="group relative overflow-hidden bg-gradient-to-br from-black/80 via-purple-900/30 to-pink-900/30 backdrop-blur-xl border border-white/10 hover:border-purple-400/50 transition-all duration-500 hover:scale-[1.01] sm:hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20 animate-fade-in mx-2 sm:mx-0">
+      {/* Challenge Winner Badge */}
+      {drop.challenge_winner && (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-xs px-2 py-1 shadow-lg">
+            <Crown className="w-3 h-3 mr-1" />
+            Challenge Winner
+          </Badge>
+        </div>
+      )}
+
       {/* Vote popup animation */}
       {votePopup.show && votePopup.type && (
         <div 
@@ -355,6 +387,13 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
               <Moon className={`w-3 h-3 sm:w-4 sm:h-4 ${hasUserVoted('chill') ? 'animate-spin-slow' : 'group-hover/btn:animate-pulse'}`} />
               <span className="font-medium">{getVoteCount('chill')}</span>
             </Button>
+            
+            {/* Vibe Threads - Comments */}
+            <VibeThreads 
+              dropId={drop.id} 
+              commentCount={commentCount}
+              onCommentCountChange={setCommentCount}
+            />
             
             {!bookmarkCheckLoading && (
               <BookmarkButton
