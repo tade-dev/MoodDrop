@@ -18,9 +18,11 @@ import {
   Heart,
   User,
   Music,
+  LogOut,
 } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import GoPremiumButton from './GoPremiumButton';
@@ -28,7 +30,7 @@ import PremiumBadge from './PremiumBadge';
 
 const AppSidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isPremium } = useSubscription();
 
   const menuItems = [
@@ -64,6 +66,14 @@ const AppSidebar = () => {
       icon: User,
     },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <Sidebar className="bg-black/95 backdrop-blur-lg border-r border-white/10">
@@ -124,6 +134,16 @@ const AppSidebar = () => {
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          className="w-full justify-start text-gray-400 hover:text-white hover:bg-white/10"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

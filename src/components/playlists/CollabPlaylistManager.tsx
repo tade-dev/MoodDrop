@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +10,16 @@ import {
   Trash2, 
   UserPlus, 
   Crown,
-  Play
+  Play,
+  UserMinus,
+  MoreVertical
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +27,8 @@ import { toast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import AddDropToPlaylistModal from './AddDropToPlaylistModal';
 import InviteCollaboratorModal from './InviteCollaboratorModal';
+import DeletePlaylistModal from './DeletePlaylistModal';
+import RemoveCollaboratorModal from './RemoveCollaboratorModal';
 
 interface PlaylistTrack {
   id: string;
@@ -49,13 +58,24 @@ interface CollabPlaylistManagerProps {
     is_collab: boolean;
   };
   onPlaylistUpdate?: () => void;
+  onPlaylistDeleted?: () => void;
 }
 
-const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: CollabPlaylistManagerProps) => {
+const CollabPlaylistManager = ({ 
+  playlistId, 
+  playlist, 
+  onPlaylistUpdate, 
+  onPlaylistDeleted 
+}: CollabPlaylistManagerProps) => {
   const { user } = useAuth();
   const { isPremium } = useSubscription();
   const [showAddDropModal, setShowAddDropModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRemoveCollaboratorModal, setShowRemoveCollaboratorModal] = useState(false);
+  const [selectedCollaborator, setSelectedCollaborator] = useState<{id: string, username: string, avatar_url?: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   // Fetch playlist tracks
   const { data: tracks = [], refetch: refetchTracks } = useQuery({
@@ -144,6 +164,86 @@ const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: Colla
     setShowInviteModal(false);
   };
 
+  const handleDeletePlaylist = async () => {
+    if (!user || !isOwner) return;
+
+    setIsDeleting(true);
+    try {
+      // First delete all playlist tracks
+      const { error: tracksError } = await supabase
+        .from('playlist_tracks')
+        .delete()
+        .eq('playlist_id', playlistId);
+
+      if (tracksError) throw tracksError;
+
+      // Then delete the playlist
+      const { error: playlistError } = await supabase
+        .from('playlists')
+        .delete()
+        .eq('id', playlistId);
+
+      if (playlistError) throw playlistError;
+
+      toast({
+        title: "Playlist Deleted",
+        description: `"${playlist.title}" has been deleted successfully.`,
+      });
+
+      onPlaylistDeleted?.();
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete playlist. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRemoveCollaborator = async () => {
+    if (!selectedCollaborator || !user || !isOwner) return;
+
+    setIsRemoving(true);
+    try {
+      // Remove collaborator from playlist contributors array
+      const updatedContributors = playlist.contributors.filter(id => id !== selectedCollaborator.id);
+      
+      const { error } = await supabase
+        .from('playlists')
+        .update({ contributors: updatedContributors })
+        .eq('id', playlistId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Collaborator Removed",
+        description: `@${selectedCollaborator.username} has been removed from the playlist.`,
+      });
+
+      onPlaylistUpdate?.();
+      setShowRemoveCollaboratorModal(false);
+      setSelectedCollaborator(null);
+    } catch (error) {
+      console.error('Error removing collaborator:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove collaborator. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  const openRemoveCollaboratorModal = (collaborator: {id: string, username: string, avatar_url?: string}) => {
+    setSelectedCollaborator(collaborator);
+    setShowRemoveCollaboratorModal(true);
+  };
+
   if (!isPremium) {
     return (
       <Card className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 border-gray-600/30">
@@ -175,29 +275,54 @@ const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: Colla
               )}
             </div>
             
-            {canManage && (
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => setShowAddDropModal(true)}
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Track
-                </Button>
-                {isOwner && (
+            <div className="flex items-center space-x-2">
+              {canManage && (
+                <>
                   <Button
-                    onClick={() => setShowInviteModal(true)}
+                    onClick={() => setShowAddDropModal(true)}
                     size="sm"
-                    variant="outline"
-                    className="border-purple-400/50 text-purple-300 hover:bg-purple-400/10"
+                    className="bg-purple-600 hover:bg-purple-700"
                   >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    Invite
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Track
                   </Button>
-                )}
-              </div>
-            )}
+                  {isOwner && (
+                    <Button
+                      onClick={() => setShowInviteModal(true)}
+                      size="sm"
+                      variant="outline"
+                      className="border-purple-400/50 text-purple-300 hover:bg-purple-400/10"
+                    >
+                      <UserPlus className="w-4 h-4 mr-1" />
+                      Invite
+                    </Button>
+                  )}
+                </>
+              )}
+              
+              {isOwner && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-black/90 border-white/20">
+                    <DropdownMenuItem
+                      onClick={() => setShowDeleteModal(true)}
+                      className="text-red-400 hover:text-red-300 focus:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Playlist
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -213,7 +338,7 @@ const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: Colla
         <CardContent>
           <div className="flex flex-wrap gap-3">
             {collaborators.map((collaborator) => (
-              <div key={collaborator.id} className="flex items-center space-x-2 bg-white/5 rounded-full px-3 py-2">
+              <div key={collaborator.id} className="flex items-center space-x-2 bg-white/5 rounded-full px-3 py-2 group">
                 <Avatar className="w-6 h-6">
                   <AvatarImage src={collaborator.avatar_url} />
                   <AvatarFallback className="bg-purple-600 text-white text-xs">
@@ -223,6 +348,14 @@ const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: Colla
                 <span className="text-white text-sm">@{collaborator.username}</span>
                 {collaborator.id === playlist.created_by && (
                   <Crown className="w-3 h-3 text-yellow-400" />
+                )}
+                {isOwner && collaborator.id !== playlist.created_by && (
+                  <button
+                    onClick={() => openRemoveCollaboratorModal(collaborator)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-red-400"
+                  >
+                    <UserMinus className="w-3 h-3" />
+                  </button>
                 )}
               </div>
             ))}
@@ -302,6 +435,22 @@ const CollabPlaylistManager = ({ playlistId, playlist, onPlaylistUpdate }: Colla
         playlistId={playlistId}
         currentContributors={playlist.contributors}
         onCollaboratorAdded={handleCollaboratorAdded}
+      />
+
+      <DeletePlaylistModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        playlistTitle={playlist.title}
+        onConfirm={handleDeletePlaylist}
+        isDeleting={isDeleting}
+      />
+
+      <RemoveCollaboratorModal
+        open={showRemoveCollaboratorModal}
+        onOpenChange={setShowRemoveCollaboratorModal}
+        collaborator={selectedCollaborator}
+        onConfirm={handleRemoveCollaborator}
+        isRemoving={isRemoving}
       />
     </div>
   );

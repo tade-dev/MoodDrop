@@ -93,6 +93,11 @@ const Playlists = () => {
     refetchUserPlaylists();
   };
 
+  const handlePlaylistDeleted = () => {
+    refetchUserPlaylists();
+    setSelectedPlaylist(null);
+  };
+
   if (!isPremium) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-pink-900/20">
@@ -188,6 +193,7 @@ const Playlists = () => {
                   playlistId={selectedPlaylist.id}
                   playlist={selectedPlaylist}
                   onPlaylistUpdate={handlePlaylistUpdate}
+                  onPlaylistDeleted={handlePlaylistDeleted}
                 />
               </div>
             ) : (
