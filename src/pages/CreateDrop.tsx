@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Music, MapPin, Sparkles, AlertCircle, Crown } from 'lucide-react';
@@ -15,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { validateSpotifyUrl, getDropTypeFromSpotifyUrl } from '@/utils/spotifyHelpers';
 import GoPremiumButton from '@/components/GoPremiumButton';
+import { useMutation } from '@tanstack/react-query';
 
 const CreateDrop = () => {
   const navigate = useNavigate();
@@ -31,6 +31,86 @@ const CreateDrop = () => {
   const [canCreateDrop, setCanCreateDrop] = useState(true);
   const [thisMonthDropCount, setThisMonthDropCount] = useState(0);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [locationName, setLocationName] = useState('');
+
+  const createDropMutation = useMutation({
+    mutationFn: async (dropData: any) => {
+      console.log('Creating drop with data:', dropData);
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Check if user can create a drop (premium vs free limits)
+      const { data: canCreate, error: canCreateError } = await supabase.rpc('can_user_create_drop');
+      
+      if (canCreateError) {
+        console.error('Error checking drop creation permission:', canCreateError);
+        throw canCreateError;
+      }
+
+      if (!canCreate) {
+        throw new Error('Daily drop limit reached. Upgrade to Premium for unlimited drops!');
+      }
+
+      // Generate a single group_id for all drops in this batch
+      const groupId = crypto.randomUUID();
+
+      // Create drops for each selected mood with the same group_id
+      const dropsToInsert = selectedMoods.map(moodId => ({
+        song_title: dropData.songTitle,
+        artist_name: dropData.artistName,
+        spotify_url: dropData.spotifyUrl,
+        caption: dropData.caption,
+        mood_id: moodId,
+        user_id: user.id,
+        group_id: groupId,
+        latitude: dropData.latitude || null,
+        longitude: dropData.longitude || null,
+        location_name: dropData.locationName || null,
+      }));
+
+      const { data, error } = await supabase
+        .from('drops')
+        .insert(dropsToInsert)
+        .select();
+
+      if (error) {
+        console.error('Error creating drops:', error);
+        throw error;
+      }
+
+      // Increment daily drop count
+      await supabase.rpc('increment_daily_drop_count');
+
+      console.log('Successfully created drops:', data);
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Drop created! 🎵",
+        description: "Your music drop has been shared with the community.",
+      });
+      // Reset form
+      setSelectedTrack(null);
+      setSelectedMoods([]);
+      setCaption('');
+      setLocation(null);
+      setLocationName('');
+      // Navigate to home
+      navigate('/home');
+    },
+    onError: (error: any) => {
+      console.error('Error creating drop:', error);
+      toast({
+        title: "Error creating drop",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!user) {

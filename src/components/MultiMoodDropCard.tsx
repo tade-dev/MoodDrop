@@ -1,0 +1,209 @@
+
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, Heart, MessageCircle, Play } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import SpotifyPlayer from './SpotifyPlayer';
+import VoteButton from './VoteButton';
+
+interface Mood {
+  id: string;
+  name: string;
+  emoji: string;
+  drop_id: string;
+}
+
+interface MultiMoodDropCardProps {
+  groupId: string;
+  spotifyUrl: string;
+  songTitle: string;
+  artistName: string;
+  caption: string;
+  createdAt: string;
+  userId: string;
+  username: string;
+  avatarUrl: string;
+  moods: Mood[];
+  totalVotes: number;
+  totalComments: number;
+  dropIds: string[];
+  isFiltered?: boolean;
+  filteredMoodId?: string;
+}
+
+const MultiMoodDropCard = ({
+  groupId,
+  spotifyUrl,
+  songTitle,
+  artistName,
+  caption,
+  createdAt,
+  userId,
+  username,
+  avatarUrl,
+  moods,
+  totalVotes,
+  totalComments,
+  dropIds,
+  isFiltered = false,
+  filteredMoodId
+}: MultiMoodDropCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isMultiMood = moods.length > 1;
+
+  const displayMoods = moods.slice(0, 3);
+  const overflowCount = Math.max(0, moods.length - 3);
+
+  const handleToggle = () => {
+    if (isMultiMood) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
+  return (
+    <Card className="bg-black/40 backdrop-blur-xl border-white/10 shadow-xl hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:border-purple-500/30">
+      <CardContent className="p-6">
+        {/* Header with user info */}
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar className="w-10 h-10">
+            <AvatarImage src={avatarUrl} />
+            <AvatarFallback className="bg-purple-600 text-white">
+              {username?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h3 className="font-semibold text-white">{username}</h3>
+            <p className="text-sm text-gray-400">
+              {new Date(createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Song info */}
+        <div className="mb-4">
+          <h4 className="text-lg font-bold text-white mb-1">{songTitle}</h4>
+          <p className="text-gray-400">{artistName}</p>
+          {caption && (
+            <p className="text-gray-300 mt-2">{caption}</p>
+          )}
+        </div>
+
+        {/* Mood badges */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {displayMoods.map((mood) => (
+            <Badge
+              key={mood.id}
+              variant="secondary"
+              className={cn(
+                "bg-purple-500/20 text-purple-200 border-purple-500/30",
+                isFiltered && filteredMoodId === mood.id && "bg-purple-500/40 border-purple-400"
+              )}
+            >
+              {mood.emoji} {mood.name}
+            </Badge>
+          ))}
+          {overflowCount > 0 && (
+            <Badge variant="secondary" className="bg-gray-500/20 text-gray-300">
+              +{overflowCount}
+            </Badge>
+          )}
+          {isMultiMood && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggle}
+              className="ml-2 text-gray-400 hover:text-white"
+              aria-expanded={isExpanded}
+              aria-controls={`accordion-${groupId}`}
+            >
+              <ChevronDown
+                className={cn(
+                  "w-4 h-4 transition-transform duration-200",
+                  isExpanded && "rotate-180"
+                )}
+              />
+              <span className="sr-only">
+                {isExpanded ? 'Collapse' : 'Expand'} multi-mood drop
+              </span>
+            </Button>
+          )}
+        </div>
+
+        {/* Spotify Player */}
+        <div className="mb-4">
+          <SpotifyPlayer spotifyUrl={spotifyUrl} />
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          <VoteButton
+            dropId={dropIds[0]} // Use first drop ID for voting
+            initialVotes={totalVotes}
+            size="lg"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            {totalComments}
+          </Button>
+        </div>
+
+        {/* Expanded accordion content */}
+        {isMultiMood && (
+          <div
+            id={`accordion-${groupId}`}
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              isExpanded ? "max-h-96 mt-6" : "max-h-0"
+            )}
+          >
+            <div className="border-t border-white/10 pt-4">
+              <h5 className="text-sm font-semibold text-gray-300 mb-3">
+                Individual mood drops:
+              </h5>
+              <div className="space-y-3">
+                {moods.map((mood) => (
+                  <div
+                    key={mood.drop_id}
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-500/20 text-purple-200 border-purple-500/30"
+                      >
+                        {mood.emoji} {mood.name}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <VoteButton
+                        dropId={mood.drop_id}
+                        initialVotes={0} // Individual mood votes would need separate query
+                        size="sm"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default MultiMoodDropCard;

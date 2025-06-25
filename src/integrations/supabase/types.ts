@@ -164,6 +164,7 @@ export type Database = {
           challenge_winner: boolean | null
           created_at: string
           drop_type: string | null
+          group_id: string
           id: string
           latitude: number | null
           location_name: string | null
@@ -181,6 +182,7 @@ export type Database = {
           challenge_winner?: boolean | null
           created_at?: string
           drop_type?: string | null
+          group_id: string
           id?: string
           latitude?: number | null
           location_name?: string | null
@@ -198,6 +200,7 @@ export type Database = {
           challenge_winner?: boolean | null
           created_at?: string
           drop_type?: string | null
+          group_id?: string
           id?: string
           latitude?: number | null
           location_name?: string | null
@@ -659,6 +662,28 @@ export type Database = {
           end_at: string
         }[]
       }
+      get_grouped_drops_feed: {
+        Args: {
+          page_limit?: number
+          page_offset?: number
+          mood_filter?: string
+        }
+        Returns: {
+          group_id: string
+          spotify_url: string
+          song_title: string
+          artist_name: string
+          caption: string
+          created_at: string
+          user_id: string
+          username: string
+          avatar_url: string
+          moods: Json
+          total_votes: number
+          total_comments: number
+          drop_ids: string[]
+        }[]
+      }
       get_hot_drops: {
         Args: { hours_back?: number; result_limit?: number }
         Returns: {
@@ -750,6 +775,10 @@ export type Database = {
       is_user_premium: {
         Args: { check_user_id?: string }
         Returns: boolean
+      }
+      migrate_existing_drops_to_groups: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
