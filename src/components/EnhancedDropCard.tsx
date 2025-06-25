@@ -69,23 +69,48 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
   // Fetch moods if drop has mood_ids array
   useEffect(() => {
     const fetchDropMoods = async () => {
+      console.log('Fetching moods for drop:', drop.id, 'mood_ids:', drop.mood_ids);
+      
+      // First check if we have mood_ids array with values
       if (drop.mood_ids && drop.mood_ids.length > 0) {
+        console.log('Using mood_ids array:', drop.mood_ids);
         const { data, error } = await supabase
           .from('moods')
           .select('id, name, emoji')
           .in('id', drop.mood_ids);
         
         if (!error && data) {
+          console.log('Fetched moods from mood_ids:', data);
           setDropMoods(data);
+        } else {
+          console.error('Error fetching moods from mood_ids:', error);
         }
-      } else if (drop.moods) {
-        // Fallback to single mood for backward compatibility
+      } 
+      // Fallback to single mood for backward compatibility
+      else if (drop.mood_id) {
+        console.log('Using single mood_id:', drop.mood_id);
+        const { data, error } = await supabase
+          .from('moods')
+          .select('id, name, emoji')
+          .eq('id', drop.mood_id)
+          .single();
+        
+        if (!error && data) {
+          console.log('Fetched single mood:', data);
+          setDropMoods([data]);
+        } else {
+          console.error('Error fetching single mood:', error);
+        }
+      }
+      // Final fallback to existing moods object
+      else if (drop.moods) {
+        console.log('Using existing moods object:', drop.moods);
         setDropMoods([drop.moods]);
       }
     };
 
     fetchDropMoods();
-  }, [drop.mood_ids, drop.moods]);
+  }, [drop.mood_ids, drop.mood_id, drop.moods, drop.id]);
 
   // Check if drop is bookmarked
   useEffect(() => {
@@ -135,6 +160,8 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
     }
   };
 
+  console.log('Rendering EnhancedDropCard - dropMoods:', dropMoods);
+
   return (
     <Card className="bg-gradient-to-br from-gray-900/80 via-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/30 transition-all duration-300 overflow-hidden mx-2 sm:mx-0">
       <div className="p-4 sm:p-6 space-y-4">
@@ -167,9 +194,9 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
         {/* Multiple Mood Badges */}
         {dropMoods.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {dropMoods.map((mood) => (
+            {dropMoods.map((mood, index) => (
               <Badge 
-                key={mood.id}
+                key={mood.id || index}
                 variant="secondary" 
                 className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs px-2 py-1"
               >

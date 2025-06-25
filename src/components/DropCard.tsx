@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -65,17 +66,42 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
   }, [user, drop.user_id, drop.id, drop.mood_ids, drop.moods]);
 
   const fetchDropMoods = async () => {
+    console.log('DropCard - Fetching moods for drop:', drop.id, 'mood_ids:', drop.mood_ids);
+    
+    // First check if we have mood_ids array with values
     if (drop.mood_ids && drop.mood_ids.length > 0) {
+      console.log('DropCard - Using mood_ids array:', drop.mood_ids);
       const { data, error } = await supabase
         .from('moods')
         .select('id, name, emoji')
         .in('id', drop.mood_ids);
       
       if (!error && data) {
+        console.log('DropCard - Fetched moods from mood_ids:', data);
         setDropMoods(data);
+      } else {
+        console.error('DropCard - Error fetching moods from mood_ids:', error);
       }
-    } else if (drop.moods) {
-      // Fallback to single mood for backward compatibility
+    } 
+    // Fallback to single mood for backward compatibility
+    else if (drop.mood_id) {
+      console.log('DropCard - Using single mood_id:', drop.mood_id);
+      const { data, error } = await supabase
+        .from('moods')
+        .select('id, name, emoji')
+        .eq('id', drop.mood_id)
+        .single();
+      
+      if (!error && data) {
+        console.log('DropCard - Fetched single mood:', data);
+        setDropMoods([data]);
+      } else {
+        console.error('DropCard - Error fetching single mood:', error);
+      }
+    }
+    // Final fallback to existing moods object
+    else if (drop.moods) {
+      console.log('DropCard - Using existing moods object:', drop.moods);
       setDropMoods([drop.moods]);
     }
   };
@@ -186,6 +212,8 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
 
   const embedUrl = getSpotifyEmbedUrl(drop.spotify_url, drop.drop_type);
 
+  console.log('DropCard - Rendering with dropMoods:', dropMoods);
+
   return (
     <Card className="bg-black/40 backdrop-blur-lg border-white/10 overflow-hidden">
       <div className="p-6">
@@ -205,9 +233,9 @@ const DropCard = ({ drop, votes = [], onVote }: DropCardProps) => {
               {/* Multiple Mood Badges */}
               {dropMoods.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {dropMoods.map((mood) => (
+                  {dropMoods.map((mood, index) => (
                     <Badge 
-                      key={mood.id}
+                      key={mood.id || index}
                       variant="secondary" 
                       className="bg-purple-500/20 text-purple-300 border-purple-400/30 text-xs px-2 py-0.5"
                     >
