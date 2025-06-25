@@ -7,9 +7,20 @@ export const getSpotifyEmbedUrl = (spotifyUrl: string, dropType?: string) => {
     if (pathParts.length < 3) return null;
     
     const type = pathParts[1]; // track, playlist, or album
-    const id = pathParts[2]?.split('?')[0];
+    let id = pathParts[2];
+    
+    // Remove any query parameters from the ID
+    if (id?.includes('?')) {
+      id = id.split('?')[0];
+    }
     
     if (!id) return null;
+    
+    // Validate the type is supported
+    if (!['track', 'playlist', 'album'].includes(type)) {
+      console.warn(`Unsupported Spotify URL type: ${type}`);
+      return null;
+    }
     
     // Validate the type matches expected drop type if provided
     const typeMap = {
@@ -22,7 +33,12 @@ export const getSpotifyEmbedUrl = (spotifyUrl: string, dropType?: string) => {
       console.warn(`Drop type "${dropType}" doesn't match Spotify URL type "${type}"`);
     }
     
-    // Return the embed URL
+    // For playlists, we need to use a different embed format
+    if (type === 'playlist') {
+      return `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
+    }
+    
+    // Return the embed URL for tracks and albums
     return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
   } catch (error) {
     console.error('Invalid Spotify URL:', error);
@@ -44,7 +60,12 @@ export const validateSpotifyUrl = (url: string): { isValid: boolean; type?: stri
     }
     
     const type = pathParts[1];
-    const id = pathParts[2];
+    let id = pathParts[2];
+    
+    // Remove query parameters from ID for validation
+    if (id?.includes('?')) {
+      id = id.split('?')[0];
+    }
     
     if (!['track', 'playlist', 'album'].includes(type)) {
       return { isValid: false, error: 'URL must be for a track, playlist, or album' };
