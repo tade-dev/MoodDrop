@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +41,7 @@ const Auth = () => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             username: username.trim(),
           },
@@ -51,10 +51,8 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user && !data.session) {
-        toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link to complete your signup.",
-        });
+        // User needs to confirm email
+        navigate('/check-email');
       } else {
         toast({
           title: "Welcome to MoodDrop!",

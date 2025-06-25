@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Sidebar,
@@ -20,7 +19,7 @@ import {
   Music,
   LogOut,
 } from "lucide-react";
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +29,7 @@ import PremiumBadge from './PremiumBadge';
 
 const AppSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isPremium } = useSubscription();
 
@@ -70,6 +70,7 @@ const AppSidebar = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
     }

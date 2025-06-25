@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ import NotFound from '@/pages/NotFound';
 import Auth from '@/pages/Auth';
 import Index from '@/pages/Index';
 import Playlists from '@/pages/Playlists';
+import CheckEmail from '@/pages/CheckEmail';
 
 function App() {
   return (
@@ -28,6 +30,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/check-email" element={<CheckEmail />} />
                 <Route path="/home" element={
                   <AppLayout>
                     <Home />
