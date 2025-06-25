@@ -66,6 +66,7 @@ const DropActionsMenu = ({ dropId, userId, onDropDeleted, onDropEdit }: DropActi
         description: "Your drop has been successfully deleted.",
       });
 
+      // Call the callback immediately to update the UI
       onDropDeleted?.();
     } catch (error) {
       console.error('Error deleting drop:', error);

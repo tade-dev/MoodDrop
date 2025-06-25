@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,9 +97,11 @@ const Home = () => {
     }
   };
 
-  const handleDropDeleted = () => {
-    // Only refetch everything when a drop is deleted
-    fetchRecentDrops();
+  const handleDropDeleted = (deletedDropId: string) => {
+    // Immediately remove the drop from the state without refetching
+    setRecentDrops(prevDrops => prevDrops.filter(drop => drop.id !== deletedDropId));
+    // Also remove any votes for this drop
+    setVotes(prevVotes => prevVotes.filter(vote => vote.drop_id !== deletedDropId));
   };
 
   const getDropVotes = (dropId: string) => {
@@ -165,6 +168,7 @@ const Home = () => {
                     drop={drop}
                     votes={getDropVotes(drop.id)}
                     onVote={() => handleVoteUpdate(drop.id)}
+                    onDropDeleted={() => handleDropDeleted(drop.id)}
                   />
                 </div>
               ))}

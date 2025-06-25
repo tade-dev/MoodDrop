@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -41,9 +42,10 @@ interface EnhancedDropCardProps {
     user_id: string;
   }>;
   onVote?: () => void;
+  onDropDeleted?: () => void;
 }
 
-const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) => {
+const EnhancedDropCard = ({ drop, votes = [], onVote, onDropDeleted }: EnhancedDropCardProps) => {
   const { user } = useAuth();
   const { isPremium } = useSubscription();
   const [isVoting, setIsVoting] = useState(false);
@@ -298,9 +300,7 @@ const EnhancedDropCard = ({ drop, votes = [], onVote }: EnhancedDropCardProps) =
             <DropActionsMenu
               dropId={drop.id}
               userId={drop.user_id}
-              onDropDeleted={() => {
-                console.log('Drop deleted, parent should handle removal');
-              }}
+              onDropDeleted={onDropDeleted}
               onDropEdit={() => {
                 toast({
                   title: "Coming soon",
