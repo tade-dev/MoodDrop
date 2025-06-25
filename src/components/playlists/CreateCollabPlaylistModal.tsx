@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus, Crown, Users } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { X, Plus, Crown, Users, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,29 +32,52 @@ const CreateCollabPlaylistModal = ({ open, onOpenChange, onPlaylistCreated }: Cr
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [collaboratorSearch, setCollaboratorSearch] = useState('');
-  const [selectedCollaborators, setSelectedCollaborators] = useState<Array<{id: string, username: string}>>([]);
+  const [selectedCollaborators, setSelectedCollaborators] = useState<Array<{id: string, username: string, avatar_url?: string}>>([]);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Extract username from @ mentions
+  const getSearchQuery = (input: string) => {
+    if (input.startsWith('@')) {
+      return input.slice(1);
+    }
+    return input;
+  };
+
   // Search for users to add as collaborators
-  const { data: searchResults = [] } = useQuery({
-    queryKey: ['search-users', collaboratorSearch],
+  const { data: searchResults = [], isLoading } = useQuery({
+    queryKey: ['search-users', getSearchQuery(collaboratorSearch)],
     queryFn: async () => {
-      if (!collaboratorSearch.trim() || collaboratorSearch.length < 2) return [];
+      const query = getSearchQuery(collaboratorSearch);
+      if (!query.trim() || query.length < 1) return [];
+      
+      // Exclude already selected collaborators and current user
+      const excludeIds = [user?.id, ...selectedCollaborators.map(c => c.id)].filter(Boolean);
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username')
-        .ilike('username', `%${collaboratorSearch}%`)
-        .neq('id', user?.id)
-        .limit(10);
+        .select('id, username, avatar_url')
+        .ilike('username', `%${query}%`)
+        .not('id', 'in', `(${excludeIds.join(',')})`)
+        .limit(5);
       
       if (error) throw error;
       return data || [];
     },
-    enabled: collaboratorSearch.length >= 2,
+    enabled: getSearchQuery(collaboratorSearch).length >= 1,
   });
 
-  const handleAddCollaborator = (collaborator: {id: string, username: string}) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Auto-add @ if user starts typing without it
+    if (value.length === 1 && !value.startsWith('@') && /[a-zA-Z]/.test(value)) {
+      value = '@' + value;
+    }
+    
+    setCollaboratorSearch(value);
+  };
+
+  const handleAddCollaborator = (collaborator: {id: string, username: string, avatar_url?: string}) => {
     if (!selectedCollaborators.find(c => c.id === collaborator.id)) {
       setSelectedCollaborators([...selectedCollaborators, collaborator]);
     }
@@ -113,6 +137,7 @@ const CreateCollabPlaylistModal = ({ open, onOpenChange, onPlaylistCreated }: Cr
       setTitle('');
       setDescription('');
       setSelectedCollaborators([]);
+      setCollaboratorSearch('');
     } catch (error) {
       console.error('Error creating playlist:', error);
       toast({
@@ -195,28 +220,54 @@ const CreateCollabPlaylistModal = ({ open, onOpenChange, onPlaylistCreated }: Cr
             <label className="text-sm font-medium text-white mb-2 block">
               Add Collaborators
             </label>
-            <Input
-              value={collaboratorSearch}
-              onChange={(e) => setCollaboratorSearch(e.target.value)}
-              placeholder="Search users by username..."
-              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                value={collaboratorSearch}
+                onChange={handleSearchChange}
+                placeholder="Type @username to search..."
+                className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 pl-10"
+              />
+            </div>
             
-            {searchResults.length > 0 && (
-              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                {searchResults.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => handleAddCollaborator(user)}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors flex items-center space-x-2"
-                  >
-                    <Plus className="w-4 h-4 text-green-400" />
-                    <span>@{user.username}</span>
-                  </button>
-                ))}
+            {/* Search Results Dropdown */}
+            {collaboratorSearch && (
+              <div className="mt-2 max-h-40 overflow-y-auto bg-black/80 border border-white/20 rounded-lg">
+                {isLoading ? (
+                  <div className="p-3 text-center">
+                    <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">Searching...</p>
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="p-3 text-center">
+                    <p className="text-gray-400 text-sm">No users found matching "{getSearchQuery(collaboratorSearch)}"</p>
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    {searchResults.map((searchUser) => (
+                      <button
+                        key={searchUser.id}
+                        onClick={() => handleAddCollaborator(searchUser)}
+                        className="w-full text-left px-3 py-2 hover:bg-white/10 text-white transition-colors flex items-center space-x-3"
+                      >
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={searchUser.avatar_url} />
+                          <AvatarFallback className="bg-purple-600 text-white text-xs">
+                            {searchUser.username?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <span className="text-sm">@{searchUser.username}</span>
+                        </div>
+                        <Plus className="w-4 h-4 text-green-400 ml-auto" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Selected Collaborators */}
             {selectedCollaborators.length > 0 && (
               <div className="mt-3">
                 <p className="text-sm text-gray-400 mb-2">Selected Collaborators:</p>
@@ -224,8 +275,14 @@ const CreateCollabPlaylistModal = ({ open, onOpenChange, onPlaylistCreated }: Cr
                   {selectedCollaborators.map((collaborator) => (
                     <Badge
                       key={collaborator.id}
-                      className="bg-purple-500/20 text-purple-300 border-purple-400/30 flex items-center space-x-1"
+                      className="bg-purple-500/20 text-purple-300 border-purple-400/30 flex items-center space-x-2 px-2 py-1"
                     >
+                      <Avatar className="w-4 h-4">
+                        <AvatarImage src={collaborator.avatar_url} />
+                        <AvatarFallback className="bg-purple-600 text-white text-xs">
+                          {collaborator.username?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                       <span>@{collaborator.username}</span>
                       <button
                         onClick={() => handleRemoveCollaborator(collaborator.id)}
