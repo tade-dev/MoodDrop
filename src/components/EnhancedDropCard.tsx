@@ -42,7 +42,7 @@ interface Drop {
 }
 
 interface Vote {
-  vote_type: 'upvote' | 'downvote';
+  vote_type: 'up' | 'down' | 'fire' | 'chill';
   user_id: string;
 }
 
@@ -59,9 +59,9 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
-  // Calculate vote counts
-  const upvotes = votes.filter(vote => vote.vote_type === 'upvote').length;
-  const downvotes = votes.filter(vote => vote.vote_type === 'downvote').length;
+  // Calculate vote counts - treating 'up' and 'fire' as upvotes, 'down' and 'chill' as downvotes
+  const upvotes = votes.filter(vote => vote.vote_type === 'up' || vote.vote_type === 'fire').length;
+  const downvotes = votes.filter(vote => vote.vote_type === 'down' || vote.vote_type === 'chill').length;
   const userVote = votes.find(vote => vote.user_id === user?.id);
 
   // Check if drop is bookmarked

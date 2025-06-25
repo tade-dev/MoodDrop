@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface Vote {
-  vote_type: 'upvote' | 'downvote';
+  vote_type: 'up' | 'down' | 'fire' | 'chill';
   user_id: string;
 }
 
@@ -25,7 +25,7 @@ const VoteButton = ({ dropId, currentVote, upvotes, downvotes, onVote }: VoteBut
 
   if (!user) return null;
 
-  const handleVote = async (voteType: 'upvote' | 'downvote') => {
+  const handleVote = async (voteType: 'up' | 'down') => {
     setIsLoading(true);
     try {
       // If user already voted with the same type, remove the vote
@@ -66,12 +66,12 @@ const VoteButton = ({ dropId, currentVote, upvotes, downvotes, onVote }: VoteBut
   return (
     <div className="flex items-center space-x-1">
       <Button
-        onClick={() => handleVote('upvote')}
+        onClick={() => handleVote('up')}
         disabled={isLoading}
         size="sm"
         variant="ghost"
         className={`transition-all duration-300 hover:scale-110 ${
-          currentVote?.vote_type === 'upvote' 
+          currentVote?.vote_type === 'up' 
             ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10' 
             : 'text-gray-400 hover:text-green-400 hover:bg-green-400/10'
         }`}
@@ -81,12 +81,12 @@ const VoteButton = ({ dropId, currentVote, upvotes, downvotes, onVote }: VoteBut
       </Button>
       
       <Button
-        onClick={() => handleVote('downvote')}
+        onClick={() => handleVote('down')}
         disabled={isLoading}
         size="sm"
         variant="ghost"
         className={`transition-all duration-300 hover:scale-110 ${
-          currentVote?.vote_type === 'downvote' 
+          currentVote?.vote_type === 'down' 
             ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10' 
             : 'text-gray-400 hover:text-red-400 hover:bg-red-400/10'
         }`}
