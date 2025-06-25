@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,9 +53,12 @@ const Explore = () => {
             Explore the <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Vibe</span>
           </h1>
           <SearchFilters 
-            onSearch={setSearchQuery}
-            onMoodFilter={setSelectedMood}
-            onTimeFilter={setTimeFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            timeFilter={timeFilter}
+            setTimeFilter={setTimeFilter}
+            sortFilter={sortFilter}
+            setSortFilter={setSortFilter}
           />
         </div>
 
