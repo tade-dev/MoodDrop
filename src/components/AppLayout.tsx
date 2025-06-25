@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -32,6 +32,11 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <div className="min-h-screen flex w-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0">
+          <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-white/10 bg-black/20 backdrop-blur-lg px-4">
+            <SidebarTrigger className="text-white hover:bg-white/10" />
+            <div className="h-4 w-px bg-white/20" />
+            <h1 className="text-lg font-semibold text-white">MoodDrop</h1>
+          </div>
           <main className="relative overflow-hidden">
             {/* Animated background elements - hidden on mobile for performance */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
