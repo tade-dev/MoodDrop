@@ -82,6 +82,9 @@ const CreateDrop = () => {
     setIsSubmitting(true);
 
     try {
+      // Generate a group_id for this drop
+      const groupId = crypto.randomUUID();
+
       // Create a single drop with multiple moods
       const { data, error } = await supabase
         .from('drops')
@@ -95,7 +98,8 @@ const CreateDrop = () => {
           mood_ids: selectedMoods, // New multi-mood field
           latitude: userLocation?.lat || null,
           longitude: userLocation?.lng || null,
-          drop_type: dropType
+          drop_type: dropType,
+          group_id: groupId // Add the required group_id field
         })
         .select()
         .single();
