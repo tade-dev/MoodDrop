@@ -215,60 +215,26 @@ const CreateDrop = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const validation = validateSpotifyUrl(spotifyUrl);
-      if (!validation.isValid) {
-        throw new Error(validation.error || 'Please enter a valid Spotify URL');
-      }
-
-      // Create multiple drops for each selected mood
-      const dropPromises = selectedMoods.map(moodId => 
-        supabase
-          .from('drops')
-          .insert({
-            user_id: user.id,
-            spotify_url: spotifyUrl,
-            artist_name: artistName.trim() || 'Unknown Artist',
-            song_title: songTitle.trim() || 'Untitled',
-            caption: caption.trim() || null,
-            mood_id: moodId,
-            latitude: userLocation?.lat || null,
-            longitude: userLocation?.lng || null,
-            drop_type: dropType
-          })
-      );
-
-      const results = await Promise.all(dropPromises);
-      
-      // Check if any inserts failed
-      const failedInserts = results.filter(result => result.error);
-      if (failedInserts.length > 0) {
-        throw new Error(failedInserts[0].error.message);
-      }
-
-      // Increment monthly drop count for non-premium users
-      if (!isPremium) {
-        await supabase.rpc('increment_daily_drop_count');
-      }
-
+    const validation = validateSpotifyUrl(spotifyUrl);
+    if (!validation.isValid) {
       toast({
-        title: "Drop created! 🎵",
-        description: `Your musical vibe has been shared with ${selectedMoods.length} mood${selectedMoods.length > 1 ? 's' : ''}`
-      });
-
-      navigate('/home');
-    } catch (error) {
-      console.error('Error creating drop:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create drop",
+        title: "Invalid Spotify URL",
+        description: validation.error || 'Please enter a valid Spotify URL',
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+
+    // Use the mutation instead of manual database calls
+    createDropMutation.mutate({
+      songTitle: songTitle.trim() || 'Untitled',
+      artistName: artistName.trim() || 'Unknown Artist', 
+      spotifyUrl,
+      caption: caption.trim() || null,
+      latitude: userLocation?.lat || null,
+      longitude: userLocation?.lng || null,
+      locationName: locationName || null,
+    });
   };
 
   if (!user) {

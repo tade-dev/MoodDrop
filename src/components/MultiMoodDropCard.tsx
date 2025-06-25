@@ -134,15 +134,21 @@ const MultiMoodDropCard = ({
 
         {/* Spotify Player */}
         <div className="mb-4">
-          <SpotifyPlayer spotifyUrl={spotifyUrl} />
+          <SpotifyPlayer 
+            spotifyUrl={spotifyUrl} 
+            songTitle={songTitle}
+            artistName={artistName}
+          />
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
           <VoteButton
             dropId={dropIds[0]} // Use first drop ID for voting
-            initialVotes={totalVotes}
-            size="lg"
+            currentVote={undefined} // Would need to fetch user's vote
+            upvotes={totalVotes}
+            downvotes={0} // Would need to calculate from vote data
+            onVote={() => {}} // Would need to refetch data
           />
           <Button
             variant="ghost"
@@ -184,8 +190,10 @@ const MultiMoodDropCard = ({
                     <div className="flex items-center gap-2">
                       <VoteButton
                         dropId={mood.drop_id}
-                        initialVotes={0} // Individual mood votes would need separate query
-                        size="sm"
+                        currentVote={undefined}
+                        upvotes={0} // Individual mood votes would need separate query
+                        downvotes={0}
+                        onVote={() => {}}
                       />
                       <Button
                         variant="ghost"
