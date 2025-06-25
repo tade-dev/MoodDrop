@@ -102,12 +102,12 @@ const Playlists = () => {
   };
 
   const handlePlaylistDeleted = () => {
-    console.log('Playlist deleted, refetching and clearing selection...');
+    console.log('Playlist deleted, clearing selection and refetching...');
     
-    // Clear the selected playlist immediately
+    // Clear the selected playlist immediately to hide the manager view
     setSelectedPlaylist(null);
     
-    // Refetch the playlists to update the list
+    // Force refetch the playlists to update the list
     refetchUserPlaylists();
   };
 
