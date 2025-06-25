@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +55,13 @@ const VibeThreads = ({ dropId, commentCount, onCommentCountChange }: VibeThreads
     enabled: isOpen,
   });
 
+  // Update comment count when comments data changes
+  useEffect(() => {
+    if (comments.length > 0) {
+      onCommentCountChange(comments.length);
+    }
+  }, [comments.length, onCommentCountChange]);
+
   const addCommentMutation = useMutation({
     mutationFn: async (text: string) => {
       if (!user) throw new Error('Must be logged in');
@@ -73,6 +79,8 @@ const VibeThreads = ({ dropId, commentCount, onCommentCountChange }: VibeThreads
     onSuccess: () => {
       setNewComment('');
       queryClient.invalidateQueries({ queryKey: ['comments', dropId] });
+      // Immediately update the comment count
+      onCommentCountChange(commentCount + 1);
       toast({
         title: "Comment added",
         description: "Your comment has been posted to the vibe thread!",
@@ -107,10 +115,9 @@ const VibeThreads = ({ dropId, commentCount, onCommentCountChange }: VibeThreads
           if (payload.new.user_id !== user?.id) {
             setHasNewComments(true);
             setTimeout(() => setHasNewComments(false), 2000);
+            // Update comment count for other users' comments
+            onCommentCountChange(commentCount + 1);
           }
-          
-          // Update comment count
-          onCommentCountChange(commentCount + 1);
         }
       )
       .subscribe();
