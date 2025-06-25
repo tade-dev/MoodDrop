@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +47,8 @@ const Playlists = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      console.log('Fetching user playlists for user:', user.id);
+      
       const { data, error } = await supabase
         .from('playlists')
         .select(`
@@ -58,7 +59,12 @@ const Playlists = () => {
         .eq('is_collab', true)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user playlists:', error);
+        throw error;
+      }
+      
+      console.log('Fetched user playlists:', data);
       return data as Playlist[];
     },
     enabled: !!user && isPremium,
@@ -85,17 +91,24 @@ const Playlists = () => {
   });
 
   const handlePlaylistCreated = () => {
+    console.log('Playlist created, refetching...');
     refetchUserPlaylists();
     setShowCreateModal(false);
   };
 
   const handlePlaylistUpdate = () => {
+    console.log('Playlist updated, refetching...');
     refetchUserPlaylists();
   };
 
   const handlePlaylistDeleted = () => {
-    refetchUserPlaylists();
+    console.log('Playlist deleted, refetching and clearing selection...');
+    
+    // Clear the selected playlist immediately
     setSelectedPlaylist(null);
+    
+    // Refetch the playlists to update the list
+    refetchUserPlaylists();
   };
 
   if (!isPremium) {

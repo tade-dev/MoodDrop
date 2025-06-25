@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -169,34 +170,53 @@ const CollabPlaylistManager = ({
 
     setIsDeleting(true);
     try {
+      console.log('Starting playlist deletion process for playlist:', playlistId);
+      
       // First delete all playlist tracks
       const { error: tracksError } = await supabase
         .from('playlist_tracks')
         .delete()
         .eq('playlist_id', playlistId);
 
-      if (tracksError) throw tracksError;
+      if (tracksError) {
+        console.error('Error deleting playlist tracks:', tracksError);
+        throw tracksError;
+      }
+
+      console.log('Successfully deleted playlist tracks');
 
       // Then delete the playlist
       const { error: playlistError } = await supabase
         .from('playlists')
         .delete()
-        .eq('id', playlistId);
+        .eq('id', playlistId)
+        .eq('created_by', user.id); // Extra security check
 
-      if (playlistError) throw playlistError;
+      if (playlistError) {
+        console.error('Error deleting playlist:', playlistError);
+        throw playlistError;
+      }
+
+      console.log('Successfully deleted playlist');
 
       toast({
         title: "Playlist Deleted",
         description: `"${playlist.title}" has been deleted successfully.`,
       });
 
-      onPlaylistDeleted?.();
+      // Close modal first, then trigger callback
       setShowDeleteModal(false);
-    } catch (error) {
+      
+      // Use a small delay to ensure the modal closes before navigation
+      setTimeout(() => {
+        onPlaylistDeleted?.();
+      }, 100);
+
+    } catch (error: any) {
       console.error('Error deleting playlist:', error);
       toast({
         title: "Error",
-        description: "Failed to delete playlist. Please try again.",
+        description: error.message || "Failed to delete playlist. Please try again.",
         variant: "destructive"
       });
     } finally {
