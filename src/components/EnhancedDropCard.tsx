@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import VoteButton from '@/components/VoteButton';
 import BookmarkButton from '@/components/BookmarkButton';
 import DropActionsMenu from '@/components/DropActionsMenu';
@@ -54,14 +56,38 @@ interface EnhancedDropCardProps {
 const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCardProps) => {
   const { user } = useAuth();
   const [commentCount, setCommentCount] = useState(0);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   // Calculate vote counts
   const upvotes = votes.filter(vote => vote.vote_type === 'upvote').length;
   const downvotes = votes.filter(vote => vote.vote_type === 'downvote').length;
   const userVote = votes.find(vote => vote.user_id === user?.id);
 
+  // Check if drop is bookmarked
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('drop_id', drop.id)
+        .single();
+      
+      setIsBookmarked(!!data);
+    };
+
+    checkBookmarkStatus();
+  }, [user?.id, drop.id]);
+
   const handleCommentCountChange = (count: number) => {
     setCommentCount(count);
+  };
+
+  const handleBookmarkChange = () => {
+    setIsBookmarked(!isBookmarked);
   };
 
   const handleShare = async () => {
@@ -120,7 +146,8 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
           </div>
           
           <DropActionsMenu 
-            drop={drop} 
+            dropId={drop.id}
+            userId={drop.user_id}
             onDropDeleted={onDropDeleted}
           />
         </div>
@@ -165,7 +192,11 @@ const EnhancedDropCard = ({ drop, votes, onVote, onDropDeleted }: EnhancedDropCa
               <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
             
-            <BookmarkButton dropId={drop.id} />
+            <BookmarkButton 
+              dropId={drop.id}
+              isBookmarked={isBookmarked}
+              onBookmarkChange={handleBookmarkChange}
+            />
           </div>
         </div>
       </div>
