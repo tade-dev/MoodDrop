@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,6 @@ import {
   Trash2, 
   UserPlus, 
   Crown,
-  Play,
   UserMinus,
   MoreVertical
 } from 'lucide-react';
@@ -30,6 +28,7 @@ import AddDropToPlaylistModal from './AddDropToPlaylistModal';
 import InviteCollaboratorModal from './InviteCollaboratorModal';
 import DeletePlaylistModal from './DeletePlaylistModal';
 import RemoveCollaboratorModal from './RemoveCollaboratorModal';
+import SpotifyPlayer from '@/components/SpotifyPlayer';
 
 interface PlaylistTrack {
   id: string;
@@ -407,14 +406,13 @@ const CollabPlaylistManager = ({
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {tracks.map((track) => (
                 <div
                   key={track.id}
-                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                  className="bg-white/5 rounded-lg hover:bg-white/10 transition-colors p-4"
                 >
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <Play className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium truncate">{track.drops.song_title}</p>
                       <p className="text-gray-400 text-sm truncate">{track.drops.artist_name}</p>
@@ -422,18 +420,25 @@ const CollabPlaylistManager = ({
                         Added by @{track.profiles.username}
                       </p>
                     </div>
+                    
+                    {canManage && (user?.id === track.added_by || isOwner) && (
+                      <Button
+                        onClick={() => handleRemoveTrack(track.id, track.added_by)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 ml-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   
-                  {canManage && (user?.id === track.added_by || isOwner) && (
-                    <Button
-                      onClick={() => handleRemoveTrack(track.id, track.added_by)}
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <SpotifyPlayer
+                    spotifyUrl={track.drops.spotify_url}
+                    songTitle={track.drops.song_title}
+                    artistName={track.drops.artist_name}
+                    className="mt-2"
+                  />
                 </div>
               ))}
             </div>
