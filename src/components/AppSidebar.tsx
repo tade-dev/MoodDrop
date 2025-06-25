@@ -24,6 +24,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import GoPremiumButton from './GoPremiumButton';
+import PremiumBadge from './PremiumBadge';
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -67,17 +68,8 @@ const AppSidebar = () => {
   return (
     <Sidebar className="bg-black/95 backdrop-blur-lg border-r border-white/10">
       <SidebarHeader className="p-4">
-        <div className="flex items-center space-x-4">
-          <Avatar>
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback className="bg-purple-600 text-white">
-              {user?.user_metadata?.username?.[0]?.toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="font-semibold text-white">{user?.user_metadata?.username || 'User'}</h2>
-            <p className="text-sm text-gray-400">{user?.email}</p>
-          </div>
+        <div className="flex items-center justify-center">
+          <h1 className="text-xl font-bold text-white">MoodDrop</h1>
         </div>
       </SidebarHeader>
       
@@ -107,10 +99,31 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        {!isPremium && (
-          <GoPremiumButton />
-        )}
+      <SidebarFooter className="p-4 space-y-4">
+        {/* Premium Status Section */}
+        <div className="flex justify-center">
+          {isPremium ? (
+            <PremiumBadge size="sm" />
+          ) : (
+            <GoPremiumButton size="sm" variant="minimal" />
+          )}
+        </div>
+        
+        {/* User Profile Section */}
+        <div className="flex items-center space-x-3 p-3 rounded-lg bg-white/5 border border-white/10">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={user?.user_metadata?.avatar_url} />
+            <AvatarFallback className="bg-purple-600 text-white text-sm">
+              {user?.user_metadata?.username?.[0]?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-white text-sm truncate">
+              {user?.user_metadata?.username || 'User'}
+            </h3>
+            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
