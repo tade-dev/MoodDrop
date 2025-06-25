@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, Heart, MessageCircle, Play } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SpotifyPlayer from './SpotifyPlayer';
 import VoteButton from './VoteButton';
@@ -51,17 +52,9 @@ const MultiMoodDropCard = ({
   isFiltered = false,
   filteredMoodId
 }: MultiMoodDropCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const isMultiMood = moods.length > 1;
-
   const displayMoods = moods.slice(0, 3);
   const overflowCount = Math.max(0, moods.length - 3);
-
-  const handleToggle = () => {
-    if (isMultiMood) {
-      setIsExpanded(!isExpanded);
-    }
-  };
 
   return (
     <Card className="bg-black/40 backdrop-blur-xl border-white/10 shadow-xl hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:border-purple-500/30">
@@ -110,26 +103,6 @@ const MultiMoodDropCard = ({
               +{overflowCount}
             </Badge>
           )}
-          {isMultiMood && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggle}
-              className="ml-2 text-gray-400 hover:text-white"
-              aria-expanded={isExpanded}
-              aria-controls={`accordion-${groupId}`}
-            >
-              <ChevronDown
-                className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-              <span className="sr-only">
-                {isExpanded ? 'Collapse' : 'Expand'} multi-mood drop
-              </span>
-            </Button>
-          )}
         </div>
 
         {/* Spotify Player */}
@@ -142,13 +115,13 @@ const MultiMoodDropCard = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-4">
           <VoteButton
-            dropId={dropIds[0]} // Use first drop ID for voting
-            currentVote={undefined} // Would need to fetch user's vote
+            dropId={dropIds[0]}
+            currentVote={undefined}
             upvotes={totalVotes}
-            downvotes={0} // Would need to calculate from vote data
-            onVote={() => {}} // Would need to refetch data
+            downvotes={0}
+            onVote={() => {}}
           />
           <Button
             variant="ghost"
@@ -160,54 +133,50 @@ const MultiMoodDropCard = ({
           </Button>
         </div>
 
-        {/* Expanded accordion content */}
+        {/* Multi-mood accordion */}
         {isMultiMood && (
-          <div
-            id={`accordion-${groupId}`}
-            className={cn(
-              "overflow-hidden transition-all duration-300 ease-in-out",
-              isExpanded ? "max-h-96 mt-6" : "max-h-0"
-            )}
-          >
-            <div className="border-t border-white/10 pt-4">
-              <h5 className="text-sm font-semibold text-gray-300 mb-3">
-                Individual mood drops:
-              </h5>
-              <div className="space-y-3">
-                {moods.map((mood) => (
-                  <div
-                    key={mood.drop_id}
-                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant="secondary"
-                        className="bg-purple-500/20 text-purple-200 border-purple-500/30"
-                      >
-                        {mood.emoji} {mood.name}
-                      </Badge>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="multi-moods" className="border-white/10">
+              <AccordionTrigger className="text-gray-300 hover:text-white py-3">
+                <span className="text-sm">View individual mood drops ({moods.length})</span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <div className="space-y-3 pt-2">
+                  {moods.map((mood) => (
+                    <div
+                      key={mood.drop_id}
+                      className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant="secondary"
+                          className="bg-purple-500/20 text-purple-200 border-purple-500/30"
+                        >
+                          {mood.emoji} {mood.name}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <VoteButton
+                          dropId={mood.drop_id}
+                          currentVote={undefined}
+                          upvotes={0}
+                          downvotes={0}
+                          onVote={() => {}}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <VoteButton
-                        dropId={mood.drop_id}
-                        currentVote={undefined}
-                        upvotes={0} // Individual mood votes would need separate query
-                        downvotes={0}
-                        onVote={() => {}}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-400 hover:text-white"
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
       </CardContent>
     </Card>
