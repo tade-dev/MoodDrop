@@ -31,6 +31,21 @@ interface Drop {
   };
 }
 
+interface HotDrop {
+  id: string;
+  song_title: string;
+  artist_name: string;
+  spotify_url: string;
+  caption: string;
+  mood_name: string;
+  mood_emoji: string;
+  username: string;
+  vote_count: number;
+  created_at: string;
+  user_id: string;
+  mood_id: string;
+}
+
 const ITEMS_PER_PAGE = 10;
 
 const Home = () => {
@@ -39,7 +54,7 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch paginated drops for For You feed
-  const { data: forYouData, isLoading: isLoadingForYou, fetchNextPage: fetchNextForYou, hasNextPage: hasNextForYou, isFetchingNextPage: isFetchingNextForYou } = useQuery({
+  const { data: forYouData, isLoading: isLoadingForYou } = useQuery({
     queryKey: ['drops-for-you', currentPage],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -59,7 +74,7 @@ const Home = () => {
   });
 
   // Fetch trending drops (hot drops)
-  const { data: hotDrops = [], isLoading: isLoadingHot } = useQuery({
+  const { data: hotDropsData = [], isLoading: isLoadingHot } = useQuery({
     queryKey: ['hot-drops'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_hot_drops', {
@@ -68,10 +83,29 @@ const Home = () => {
       });
       
       if (error) throw error;
-      return data;
+      return data as HotDrop[];
     },
     enabled: !!user,
   });
+
+  // Transform hot drops to match Drop interface
+  const hotDrops: Drop[] = hotDropsData.map(drop => ({
+    id: drop.id,
+    song_title: drop.song_title,
+    artist_name: drop.artist_name,
+    spotify_url: drop.spotify_url,
+    caption: drop.caption,
+    created_at: drop.created_at,
+    user_id: drop.user_id || '',
+    mood_id: drop.mood_id || '',
+    profiles: {
+      username: drop.username,
+    },
+    moods: {
+      name: drop.mood_name,
+      emoji: drop.mood_emoji,
+    }
+  }));
 
   // Fetch following feed
   const { data: followingDrops = [], isLoading: isLoadingFollowing } = useQuery({
@@ -132,7 +166,8 @@ const Home = () => {
           <EnhancedDropCard
             key={drop.id}
             drop={drop}
-            showMoodBadge={true}
+            votes={[]}
+            onVote={() => {}}
             className="bg-gradient-to-br from-purple-900/10 via-pink-900/5 to-blue-900/10 backdrop-blur-sm border border-white/10"
           />
         ))}

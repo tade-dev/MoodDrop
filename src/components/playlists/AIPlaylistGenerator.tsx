@@ -13,16 +13,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 interface AIPlaylist {
   id: string;
   prompt: string;
-  playlist_data: {
-    title: string;
-    description: string;
-    songs: Array<{
-      title: string;
-      artist: string;
-    }>;
-    spotify_search_query?: string;
-  };
+  playlist_data: any; // Using any to match the Json type from Supabase
   created_at: string;
+  user_id: string;
   profiles?: {
     username: string;
   };
@@ -34,16 +27,13 @@ const AIPlaylistGenerator = () => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch AI playlists
+  // Fetch AI playlists - removing the profiles join since the relation doesn't exist
   const { data: aiPlaylists = [], isLoading } = useQuery({
     queryKey: ['ai-playlists'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_playlists')
-        .select(`
-          *,
-          profiles (username)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
       
@@ -165,16 +155,16 @@ const AIPlaylistGenerator = () => {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h4 className="text-lg font-semibold text-white mb-1">
-                        {playlist.playlist_data.title}
+                        {playlist.playlist_data?.title || 'AI Generated Playlist'}
                       </h4>
                       <p className="text-sm text-gray-400 mb-2">
                         "{playlist.prompt}"
                       </p>
                       <p className="text-sm text-gray-300 mb-3">
-                        {playlist.playlist_data.description}
+                        {playlist.playlist_data?.description || 'A playlist curated based on your mood'}
                       </p>
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>by @{playlist.profiles?.username}</span>
+                        <span>by @{playlist.user_id}</span>
                         <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
@@ -188,10 +178,10 @@ const AIPlaylistGenerator = () => {
                   <div className="mb-4">
                     <h5 className="text-sm font-medium text-white mb-2 flex items-center">
                       <Music className="w-4 h-4 mr-1" />
-                      Songs ({playlist.playlist_data.songs?.length || 0})
+                      Songs ({playlist.playlist_data?.songs?.length || 0})
                     </h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                      {playlist.playlist_data.songs?.map((song, index) => (
+                      {playlist.playlist_data?.songs?.map((song: any, index: number) => (
                         <div key={index} className="bg-black/20 rounded-lg p-2">
                           <p className="text-sm text-white font-medium truncate">{song.title}</p>
                           <p className="text-xs text-gray-400 truncate">{song.artist}</p>
@@ -231,7 +221,7 @@ const AIPlaylistGenerator = () => {
                         Chill
                       </Button>
                     </div>
-                    {playlist.playlist_data.spotify_search_query && (
+                    {playlist.playlist_data?.spotify_search_query && (
                       <Button
                         size="sm"
                         asChild
