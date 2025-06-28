@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -168,7 +167,6 @@ const Home = () => {
             drop={drop}
             votes={[]}
             onVote={() => {}}
-            className="bg-gradient-to-br from-purple-900/10 via-pink-900/5 to-blue-900/10 backdrop-blur-sm border border-white/10"
           />
         ))}
       </div>
