@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,8 @@ import {
   Music, 
   Crown,
   Star,
-  UserPlus
+  UserPlus,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -17,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import CreateCollabPlaylistModal from '@/components/playlists/CreateCollabPlaylistModal';
 import CollabPlaylistManager from '@/components/playlists/CollabPlaylistManager';
+import AIPlaylistGenerator from '@/components/playlists/AIPlaylistGenerator';
 import GoPremiumButton from '@/components/GoPremiumButton';
 
 interface Playlist {
@@ -166,10 +169,10 @@ const Playlists = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              Collaborative Playlists
+              Playlists
             </h1>
             <p className="text-gray-300">
-              Create and manage playlists with friends
+              Create collaborative playlists or generate them with AI
             </p>
           </div>
           
@@ -182,8 +185,12 @@ const Playlists = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="my-playlists" className="space-y-6">
+        <Tabs defaultValue="ai-generator" className="space-y-6">
           <TabsList className="bg-black/40 border border-white/10">
+            <TabsTrigger value="ai-generator" className="data-[state=active]:bg-purple-600">
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Generator
+            </TabsTrigger>
             <TabsTrigger value="my-playlists" className="data-[state=active]:bg-purple-600">
               My Playlists ({userPlaylists.length})
             </TabsTrigger>
@@ -191,6 +198,10 @@ const Playlists = () => {
               Featured
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="ai-generator" className="space-y-6">
+            <AIPlaylistGenerator />
+          </TabsContent>
 
           <TabsContent value="my-playlists" className="space-y-6">
             {selectedPlaylist ? (

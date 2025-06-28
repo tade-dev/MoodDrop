@@ -1,23 +1,26 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import EnhancedDropCard from '@/components/EnhancedDropCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { Sparkles, TrendingUp, Music2, Palette } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Flame, TrendingUp, Users, ChevronDown } from 'lucide-react';
+import EnhancedDropCard from '@/components/EnhancedDropCard';
 import WeeklyChallengeBanner from '@/components/WeeklyChallengeBanner';
+import TrendingMoodsCarousel from '@/components/explore/TrendingMoodsCarousel';
 
 interface Drop {
   id: string;
-  spotify_url: string;
-  artist_name: string;
   song_title: string;
+  artist_name: string;
+  spotify_url: string;
   caption?: string;
   created_at: string;
   user_id: string;
   mood_id: string;
-  mood_ids?: string[];
   profiles?: {
     username: string;
     avatar_url?: string;
@@ -28,26 +31,18 @@ interface Drop {
   };
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const Home = () => {
-  const [recentDrops, setRecentDrops] = useState<Drop[]>([]);
-  const [votes, setVotes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('for-you');
+  const [currentPage, setCurrentPage] = useState(0);
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
-    
-    fetchRecentDrops();
-  }, [user, navigate]);
-
-  const fetchRecentDrops = async () => {
-    try {
-      setLoading(true);
-      const { data: dropsData, error: dropsError } = await supabase
+  // Fetch paginated drops for For You feed
+  const { data: forYouData, isLoading: isLoadingForYou, fetchNextPage: fetchNextForYou, hasNextPage: hasNextForYou, isFetchingNextPage: isFetchingNextForYou } = useQuery({
+    queryKey: ['drops-for-you', currentPage],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('drops')
         .select(`
           *,
@@ -55,127 +50,183 @@ const Home = () => {
           moods (name, emoji)
         `)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .range(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE - 1);
+      
+      if (error) throw error;
+      return data as Drop[];
+    },
+    enabled: !!user,
+  });
 
-      if (dropsError) throw dropsError;
-      setRecentDrops(dropsData || []);
+  // Fetch trending drops (hot drops)
+  const { data: hotDrops = [], isLoading: isLoadingHot } = useQuery({
+    queryKey: ['hot-drops'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_hot_drops', {
+        hours_back: 24,
+        result_limit: 20
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-      if (dropsData && dropsData.length > 0) {
-        const dropIds = dropsData.map(drop => drop.id);
-        const { data: votesData, error: votesError } = await supabase
-          .from('votes')
-          .select('*')
-          .in('drop_id', dropIds);
+  // Fetch following feed
+  const { data: followingDrops = [], isLoading: isLoadingFollowing } = useQuery({
+    queryKey: ['following-drops'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('drops')
+        .select(`
+          *,
+          profiles (username, avatar_url),
+          moods (name, emoji)
+        `)
+        .in('user_id', 
+          await supabase
+            .from('follows')
+            .select('followed_id')
+            .eq('follower_id', user.id)
+            .then(({ data }) => data?.map(f => f.followed_id) || [])
+        )
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as Drop[];
+    },
+    enabled: !!user,
+  });
 
-        if (!votesError) {
-          setVotes(votesData || []);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching recent drops:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadMoreDrops = () => {
+    setCurrentPage(prev => prev + 1);
   };
 
-  const handleVoteUpdate = async (dropId: string) => {
-    // Refetch only the votes for this specific drop to update the UI
-    try {
-      const { data: updatedVotes, error } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('drop_id', dropId);
-
-      if (!error && updatedVotes) {
-        // Update the votes state by replacing votes for this drop
-        setVotes(prevVotes => {
-          const otherVotes = prevVotes.filter(vote => vote.drop_id !== dropId);
-          return [...otherVotes, ...updatedVotes];
-        });
-      }
-    } catch (error) {
-      console.error('Error updating votes:', error);
-    }
-  };
-
-  const handleDropDeleted = (deletedDropId: string) => {
-    // Immediately remove the drop from the state without refetching
-    setRecentDrops(prevDrops => prevDrops.filter(drop => drop.id !== deletedDropId));
-    // Also remove any votes for this drop
-    setVotes(prevVotes => prevVotes.filter(vote => vote.drop_id !== deletedDropId));
-  };
-
-  const getDropVotes = (dropId: string) => {
-    return votes.filter(vote => vote.drop_id === dropId);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen px-4">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white text-base sm:text-lg animate-pulse text-center">Loading your vibes...</p>
+  const renderDrops = (drops: Drop[], isLoading: boolean) => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
         </div>
+      );
+    }
+
+    if (!drops || drops.length === 0) {
+      return (
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="p-8 text-center">
+            <div className="text-gray-400 mb-4">No drops found</div>
+            <p className="text-sm text-gray-500">Follow some users or check out trending drops!</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {drops.map((drop) => (
+          <EnhancedDropCard
+            key={drop.id}
+            drop={drop}
+            showMoodBadge={true}
+            className="bg-gradient-to-br from-purple-900/10 via-pink-900/5 to-blue-900/10 backdrop-blur-sm border border-white/10"
+          />
+        ))}
+      </div>
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-pink-900/20 flex items-center justify-center">
+        <Card className="bg-white/5 border-white/10 p-8 text-center">
+          <CardContent>
+            <h2 className="text-2xl font-bold text-white mb-4">Welcome to MoodDrop</h2>
+            <p className="text-gray-400">Please sign in to see your personalized feed</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-pink-900/20">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Weekly Challenge Banner */}
         <WeeklyChallengeBanner />
         
-        {/* Welcome Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl sm:text-6xl font-bold text-white mb-4">
-            Welcome to <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">MoodDrop</span>
-          </h1>
-          <p className="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
-            Share your musical moments, discover new vibes, and connect with others through the power of music.
-          </p>
+        {/* Trending Moods */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">Trending Moods</h2>
+          <TrendingMoodsCarousel />
         </div>
 
         {/* Main Feed */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
-              <span>Latest Vibes</span>
-            </h2>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 bg-black/40 backdrop-blur-lg border border-white/10">
+            <TabsTrigger value="for-you" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+              <Flame className="w-4 h-4" />
+              <span>For You</span>
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>Trending</span>
+            </TabsTrigger>
+            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Following</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {recentDrops.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mx-2 sm:mx-0">
-              <Music2 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">No drops yet</h3>
-              <p className="text-gray-400 mb-4 sm:mb-6 px-4">Be the first to share your musical vibe!</p>
-              <Button
-                onClick={() => navigate('/create')}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 w-full max-w-xs mx-auto"
-              >
-                Create First Drop
-              </Button>
+          <TabsContent value="for-you" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Your Feed</h2>
+              <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
+                Page {currentPage + 1}
+              </Badge>
             </div>
-          ) : (
-            <div className="space-y-4 sm:space-y-6">
-              {recentDrops.map((drop, index) => (
-                <div
-                  key={drop.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
+            {renderDrops(forYouData || [], isLoadingForYou)}
+            
+            {forYouData && forYouData.length >= ITEMS_PER_PAGE && (
+              <div className="flex justify-center pt-6">
+                <Button
+                  onClick={loadMoreDrops}
+                  variant="outline"
+                  className="bg-black/20 border-white/20 text-white hover:bg-white/10"
                 >
-                  <EnhancedDropCard
-                    drop={drop}
-                    votes={getDropVotes(drop.id)}
-                    onVote={() => handleVoteUpdate(drop.id)}
-                    onDropDeleted={() => handleDropDeleted(drop.id)}
-                  />
-                </div>
-              ))}
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Load More Drops
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Trending Now</h2>
+              <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Hot
+              </Badge>
             </div>
-          )}
-        </div>
+            {renderDrops(hotDrops || [], isLoadingHot)}
+          </TabsContent>
+
+          <TabsContent value="following" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Following</h2>
+              <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30">
+                <Users className="w-3 h-3 mr-1" />
+                {followingDrops.length} drops
+              </Badge>
+            </div>
+            {renderDrops(followingDrops || [], isLoadingFollowing)}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
