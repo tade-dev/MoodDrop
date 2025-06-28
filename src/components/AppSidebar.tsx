@@ -18,6 +18,7 @@ import {
   User,
   Music,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -32,6 +33,9 @@ const AppSidebar = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isPremium } = useSubscription();
+
+  // Check if current user is super admin
+  const isSuperAdmin = user?.email === 'akintadeseun816@gmail.com';
 
   const menuItems = [
     {
@@ -65,6 +69,12 @@ const AppSidebar = () => {
       url: "/profile",
       icon: User,
     },
+    // Add Admin menu item for super admin
+    ...(isSuperAdmin ? [{
+      title: "Admin",
+      url: "/admin",
+      icon: Shield,
+    }] : []),
   ];
 
   const handleLogout = async () => {
