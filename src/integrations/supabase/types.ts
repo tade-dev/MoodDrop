@@ -9,6 +9,103 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_playlist_comments: {
+        Row: {
+          ai_playlist_id: string
+          created_at: string
+          id: string
+          text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_playlist_id: string
+          created_at?: string
+          id?: string
+          text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_playlist_id?: string
+          created_at?: string
+          id?: string
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_playlist_comments_ai_playlist_id_fkey"
+            columns: ["ai_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "ai_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_playlist_reactions: {
+        Row: {
+          ai_playlist_id: string
+          created_at: string
+          id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          ai_playlist_id: string
+          created_at?: string
+          id?: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          ai_playlist_id?: string
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_playlist_reactions_ai_playlist_id_fkey"
+            columns: ["ai_playlist_id"]
+            isOneToOne: false
+            referencedRelation: "ai_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_playlists: {
+        Row: {
+          created_at: string
+          id: string
+          playlist_data: Json
+          prompt: string
+          spotify_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          playlist_data: Json
+          prompt: string
+          spotify_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          playlist_data?: Json
+          prompt?: string
+          spotify_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
