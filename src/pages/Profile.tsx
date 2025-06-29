@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import DropCard from '@/components/DropCard';
+import UnifiedDropCard from '@/components/UnifiedDropCard';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -183,7 +183,13 @@ const Profile = () => {
   };
 
   const getDropVotes = (dropId: string) => {
-    return votes.filter(vote => vote.drop_id === dropId);
+    return votes
+      .filter(vote => vote.drop_id === dropId)
+      .filter(vote => ['fire', 'down', 'chill'].includes(vote.vote_type))
+      .map(vote => ({
+        vote_type: vote.vote_type as 'fire' | 'down' | 'chill',
+        user_id: vote.user_id
+      }));
   };
 
   if (!user || !profile) {
@@ -353,10 +359,11 @@ const Profile = () => {
                       className="animate-fade-in"
                       style={{ animationDelay: `${0.1 * index}s` }}
                     >
-                      <DropCard
+                      <UnifiedDropCard
                         drop={drop}
                         votes={getDropVotes(drop.id)}
                         onVote={fetchUserDrops}
+                        showFollowButton={false}
                       />
                     </div>
                   ))}
@@ -381,10 +388,11 @@ const Profile = () => {
                       className="animate-fade-in"
                       style={{ animationDelay: `${0.1 * index}s` }}
                     >
-                      <DropCard
+                      <UnifiedDropCard
                         drop={drop}
                         votes={getDropVotes(drop.id)}
                         onVote={fetchUserDrops}
+                        showFollowButton={false}
                       />
                     </div>
                   ))}
