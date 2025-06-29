@@ -41,6 +41,9 @@ const CreateDropFromSong = ({ song, onDropCreated }: CreateDropFromSongProps) =>
 
     setIsCreating(true);
     try {
+      // Generate a unique group_id for this drop
+      const groupId = crypto.randomUUID();
+
       const { error } = await supabase
         .from('drops')
         .insert({
@@ -50,7 +53,8 @@ const CreateDropFromSong = ({ song, onDropCreated }: CreateDropFromSongProps) =>
           spotify_url: spotifyUrl.trim(),
           caption: caption.trim() || null,
           mood_id: selectedMoodId,
-          drop_type: 'song'
+          drop_type: 'song',
+          group_id: groupId
         });
 
       if (error) throw error;
