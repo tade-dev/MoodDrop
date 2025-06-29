@@ -18,6 +18,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import CreateCollabPlaylistModal from '@/components/playlists/CreateCollabPlaylistModal';
 import CollabPlaylistManager from '@/components/playlists/CollabPlaylistManager';
 import AIPlaylistGenerator from '@/components/playlists/AIPlaylistGenerator';

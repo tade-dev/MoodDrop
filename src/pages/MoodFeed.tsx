@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import DropCard from '@/components/DropCard';
+import UnifiedDropCard from '@/components/UnifiedDropCard';
 import { Button } from '@/components/ui/button';
 
 interface Drop {
@@ -164,7 +164,7 @@ const MoodFeed = () => {
                 className="animate-fade-in"
                 style={{ animationDelay: `${0.1 * (index + 3)}s` }}
               >
-                <DropCard
+                <UnifiedDropCard
                   drop={drop}
                   votes={getDropVotes(drop.id)}
                   onVote={fetchMoodAndDrops}

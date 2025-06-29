@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import SpotifyPlayer from '@/components/SpotifyPlayer';
 import FollowButton from '@/components/FollowButton';
 import BookmarkButton from '@/components/BookmarkButton';

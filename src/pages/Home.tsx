@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Flame, TrendingUp, Users, ChevronDown } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import UnifiedDropCard from '@/components/UnifiedDropCard';
 import WeeklyChallengeBanner from '@/components/WeeklyChallengeBanner';
 import TrendingMoodsCarousel from '@/components/explore/TrendingMoodsCarousel';
@@ -48,6 +49,11 @@ interface HotDrop {
   mood_id: string;
 }
 
+interface Vote {
+  vote_type: 'fire' | 'down' | 'chill';
+  user_id: string;
+}
+
 const ITEMS_PER_PAGE = 10;
 
 const Home = () => {
@@ -80,6 +86,7 @@ const Home = () => {
       return { data: data as Drop[], nextPage: data.length === ITEMS_PER_PAGE ? pageParam + 1 : null };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 0,
     enabled: !!user,
   });
 
@@ -186,8 +193,14 @@ const Home = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  const getDropVotes = (dropId: string) => {
-    return votesData.filter(vote => vote.drop_id === dropId);
+  const getDropVotes = (dropId: string): Vote[] => {
+    return votesData
+      .filter(vote => vote.drop_id === dropId)
+      .filter(vote => ['fire', 'down', 'chill'].includes(vote.vote_type))
+      .map(vote => ({
+        vote_type: vote.vote_type as 'fire' | 'down' | 'chill',
+        user_id: vote.user_id
+      }));
   };
 
   const renderDrops = (drops: Drop[], isLoading: boolean, showInfiniteScroll = false) => {

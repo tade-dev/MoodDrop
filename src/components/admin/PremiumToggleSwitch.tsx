@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface PremiumToggleSwitchProps {
   premiumEnabled: boolean;
