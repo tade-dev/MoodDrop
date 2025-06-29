@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,8 +95,8 @@ const DropActionsMenu = ({ dropId, userId, onDropDeleted, onDropEdit }: DropActi
 
   return (
     <>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
@@ -104,25 +104,25 @@ const DropActionsMenu = ({ dropId, userId, onDropDeleted, onDropEdit }: DropActi
           >
             <MoreHorizontal className="w-4 h-4" />
           </Button>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-48 bg-black/90 backdrop-blur-sm border border-white/20">
-          <ContextMenuItem 
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-48 bg-black/90 backdrop-blur-sm border border-white/20">
+          <DropdownMenuItem 
             onClick={handleEdit}
             className="flex items-center space-x-2 text-white hover:bg-white/10 cursor-pointer"
           >
             <Edit className="w-4 h-4" />
             <span>Edit Drop</span>
             {!isPremium && <Crown className="w-3 h-3 text-yellow-500 ml-auto" />}
-          </ContextMenuItem>
-          <ContextMenuItem 
+          </DropdownMenuItem>
+          <DropdownMenuItem 
             onClick={() => setShowDeleteDialog(true)}
             className="flex items-center space-x-2 text-red-400 hover:bg-red-500/10 cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             <span>Delete Drop</span>
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-black/90 backdrop-blur-sm border border-white/20">

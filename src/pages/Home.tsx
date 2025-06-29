@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Flame, TrendingUp, Users, ChevronDown } from 'lucide-react';
-import EnhancedDropCard from '@/components/EnhancedDropCard';
+import { useIsMobile } from '@/hooks/use-mobile';
+import UnifiedDropCard from '@/components/UnifiedDropCard';
 import WeeklyChallengeBanner from '@/components/WeeklyChallengeBanner';
 import TrendingMoodsCarousel from '@/components/explore/TrendingMoodsCarousel';
 
@@ -20,6 +22,7 @@ interface Drop {
   created_at: string;
   user_id: string;
   mood_id: string;
+  mood_ids?: string[];
   profiles?: {
     username: string;
     avatar_url?: string;
@@ -49,13 +52,20 @@ const ITEMS_PER_PAGE = 10;
 
 const Home = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('for-you');
-  const [currentPage, setCurrentPage] = useState(0);
 
-  // Fetch paginated drops for For You feed
-  const { data: forYouData, isLoading: isLoadingForYou } = useQuery({
-    queryKey: ['drops-for-you', currentPage],
-    queryFn: async () => {
+  // Infinite query for For You feed
+  const {
+    data: forYouData,
+    fetchNextPage: fetchNextForYou,
+    hasNextPage: hasNextForYou,
+    isFetchingNextPage: isFetchingNextForYou,
+    isLoading: isLoadingForYou,
+    refetch: refetchForYou
+  } = useInfiniteQuery({
+    queryKey: ['drops-for-you-infinite'],
+    queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from('drops')
         .select(`
@@ -64,12 +74,31 @@ const Home = () => {
           moods (name, emoji)
         `)
         .order('created_at', { ascending: false })
-        .range(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE - 1);
+        .range(pageParam * ITEMS_PER_PAGE, (pageParam + 1) * ITEMS_PER_PAGE - 1);
       
       if (error) throw error;
-      return data as Drop[];
+      return { data: data as Drop[], nextPage: data.length === ITEMS_PER_PAGE ? pageParam + 1 : null };
     },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: !!user,
+  });
+
+  // Fetch votes for all drops
+  const allDrops = forYouData?.pages?.flatMap(page => page.data) || [];
+  const { data: votesData = [] } = useQuery({
+    queryKey: ['votes', allDrops.map(d => d.id)],
+    queryFn: async () => {
+      if (allDrops.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('votes')
+        .select('drop_id, vote_type, user_id')
+        .in('drop_id', allDrops.map(d => d.id));
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: allDrops.length > 0,
   });
 
   // Fetch trending drops (hot drops)
@@ -112,6 +141,15 @@ const Home = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      const { data: followsData } = await supabase
+        .from('follows')
+        .select('followed_id')
+        .eq('follower_id', user.id);
+
+      const followedIds = followsData?.map(f => f.followed_id) || [];
+      
+      if (followedIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from('drops')
         .select(`
@@ -119,13 +157,7 @@ const Home = () => {
           profiles (username, avatar_url),
           moods (name, emoji)
         `)
-        .in('user_id', 
-          await supabase
-            .from('follows')
-            .select('followed_id')
-            .eq('follower_id', user.id)
-            .then(({ data }) => data?.map(f => f.followed_id) || [])
-        )
+        .in('user_id', followedIds)
         .order('created_at', { ascending: false })
         .limit(50);
       
@@ -135,12 +167,31 @@ const Home = () => {
     enabled: !!user,
   });
 
-  const loadMoreDrops = () => {
-    setCurrentPage(prev => prev + 1);
+  // Infinite scroll handler
+  const handleScroll = useCallback(() => {
+    if (activeTab !== 'for-you') return;
+    
+    if (
+      window.innerHeight + document.documentElement.scrollTop
+      >= document.documentElement.offsetHeight - 1000 &&
+      hasNextForYou &&
+      !isFetchingNextForYou
+    ) {
+      fetchNextForYou();
+    }
+  }, [activeTab, hasNextForYou, isFetchingNextForYou, fetchNextForYou]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const getDropVotes = (dropId: string) => {
+    return votesData.filter(vote => vote.drop_id === dropId);
   };
 
-  const renderDrops = (drops: Drop[], isLoading: boolean) => {
-    if (isLoading) {
+  const renderDrops = (drops: Drop[], isLoading: boolean, showInfiniteScroll = false) => {
+    if (isLoading && drops.length === 0) {
       return (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
@@ -162,13 +213,20 @@ const Home = () => {
     return (
       <div className="space-y-6">
         {drops.map((drop) => (
-          <EnhancedDropCard
+          <UnifiedDropCard
             key={drop.id}
             drop={drop}
-            votes={[]}
-            onVote={() => {}}
+            votes={getDropVotes(drop.id)}
+            onVote={() => refetchForYou()}
           />
         ))}
+        
+        {showInfiniteScroll && isFetchingNextForYou && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-400 mr-2" />
+            <span className="text-gray-400">Loading more drops...</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -188,59 +246,52 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-pink-900/20">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className={cn("container mx-auto py-6 max-w-4xl", isMobile ? "px-2" : "px-4")}>
         {/* Weekly Challenge Banner */}
         <WeeklyChallengeBanner />
         
         {/* Trending Moods */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Trending Moods</h2>
+          <h2 className={cn("font-bold text-white mb-4", isMobile ? "text-lg px-2" : "text-xl")}>
+            Trending Moods
+          </h2>
           <TrendingMoodsCarousel />
         </div>
 
         {/* Main Feed */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-black/40 backdrop-blur-lg border border-white/10">
-            <TabsTrigger value="for-you" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+          <TabsList className="bg-black/40 backdrop-blur-lg border border-white/10">
+            <TabsTrigger value="for-you" className="data-[state=active]:bg-purple-600">
               <Flame className="w-4 h-4" />
-              <span>For You</span>
+              {!isMobile && <span className="ml-2">For You</span>}
+              {isMobile && <span className="text-xs">For You</span>}
             </TabsTrigger>
-            <TabsTrigger value="trending" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+            <TabsTrigger value="trending" className="data-[state=active]:bg-purple-600">
               <TrendingUp className="w-4 h-4" />
-              <span>Trending</span>
+              {!isMobile && <span className="ml-2">Trending</span>}
+              {isMobile && <span className="text-xs">Trending</span>}
             </TabsTrigger>
-            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 flex items-center space-x-2">
+            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600">
               <Users className="w-4 h-4" />
-              <span>Following</span>
+              {!isMobile && <span className="ml-2">Following</span>}
+              {isMobile && <span className="text-xs">Following</span>}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="for-you" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Your Feed</h2>
-              <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
-                Page {currentPage + 1}
-              </Badge>
+            <div className={cn("flex items-center justify-between", isMobile && "px-2")}>
+              <h2 className={cn("font-bold text-white", isMobile ? "text-xl" : "text-2xl")}>
+                Your Feed
+              </h2>
             </div>
-            {renderDrops(forYouData || [], isLoadingForYou)}
-            
-            {forYouData && forYouData.length >= ITEMS_PER_PAGE && (
-              <div className="flex justify-center pt-6">
-                <Button
-                  onClick={loadMoreDrops}
-                  variant="outline"
-                  className="bg-black/20 border-white/20 text-white hover:bg-white/10"
-                >
-                  <ChevronDown className="w-4 h-4 mr-2" />
-                  Load More Drops
-                </Button>
-              </div>
-            )}
+            {renderDrops(allDrops, isLoadingForYou, true)}
           </TabsContent>
 
           <TabsContent value="trending" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Trending Now</h2>
+            <div className={cn("flex items-center justify-between", isMobile && "px-2")}>
+              <h2 className={cn("font-bold text-white", isMobile ? "text-xl" : "text-2xl")}>
+                Trending Now
+              </h2>
               <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">
                 <TrendingUp className="w-3 h-3 mr-1" />
                 Hot
@@ -250,8 +301,10 @@ const Home = () => {
           </TabsContent>
 
           <TabsContent value="following" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Following</h2>
+            <div className={cn("flex items-center justify-between", isMobile && "px-2")}>
+              <h2 className={cn("font-bold text-white", isMobile ? "text-xl" : "text-2xl")}>
+                Following
+              </h2>
               <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30">
                 <Users className="w-3 h-3 mr-1" />
                 {followingDrops.length} drops
