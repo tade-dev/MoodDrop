@@ -130,7 +130,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // - Admin always has premium
   // - When premium is globally DISABLED: everyone gets free access (premium features for all)
   // - When premium is globally ENABLED: only subscribers and admin have premium access
-  const isPremium = isAdmin || (!globalPremiumEnabled || (subscription?.is_premium || false));
+  const isPremium = isAdmin || !globalPremiumEnabled || (globalPremiumEnabled && (subscription?.is_premium || false));
 
   console.log('Premium Context State:', {
     isAdmin,

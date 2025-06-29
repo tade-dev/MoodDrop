@@ -67,7 +67,7 @@ const PremiumToggle = () => {
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       toast({
         title: "Premium Settings Updated",
-        description: `Premium features ${enabled ? 'enabled' : 'disabled'} globally.`,
+        description: `Premium restrictions ${enabled ? 'enabled' : 'disabled'} globally. ${enabled ? 'Only subscribers and admin have premium access.' : 'All users now have free access to premium features.'}`,
       });
     },
     onError: (error: any) => {
@@ -154,7 +154,7 @@ const PremiumToggle = () => {
             <Crown className="w-5 h-5 text-yellow-400" />
             <span>Premium Features Control</span>
             <Badge variant={settings?.premium_enabled ? "default" : "secondary"}>
-              {settings?.premium_enabled ? "RESTRICTED" : "FREE FOR ALL"}
+              {settings?.premium_enabled ? "RESTRICTED MODE" : "FREE ACCESS MODE"}
             </Badge>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -169,9 +169,9 @@ const PremiumToggle = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-white font-medium">Premium Restrictions Toggle</h3>
+              <h3 className="text-white font-medium">Enable Premium Restrictions</h3>
               <p className="text-gray-400 text-sm">
-                Control whether premium features require a subscription
+                When enabled, only subscribers and admin have premium access
               </p>
             </div>
             <Switch
@@ -191,9 +191,18 @@ const PremiumToggle = () => {
             <h4 className="text-white font-medium mb-2">How This Works:</h4>
             <ul className="text-gray-300 text-sm space-y-1">
               <li>• <strong>Admin:</strong> Always has full access to everything</li>
-              <li>• <strong>When DISABLED:</strong> All users get free access to premium features</li>
-              <li>• <strong>When ENABLED:</strong> Only subscribers + admin have premium access</li>
+              <li>• <strong>When DISABLED (Free Access):</strong> All users get premium features for free</li>
+              <li>• <strong>When ENABLED (Restricted):</strong> Only subscribers + admin have premium access</li>
             </ul>
+            
+            <div className="mt-3 p-3 bg-blue-500/10 rounded border border-blue-400/20">
+              <p className="text-blue-300 text-sm">
+                <strong>Current Effect:</strong> {settings?.premium_enabled 
+                  ? 'Only paying subscribers and admin can use premium features'
+                  : 'Everyone gets free access to all premium features'
+                }
+              </p>
+            </div>
           </div>
 
           <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
