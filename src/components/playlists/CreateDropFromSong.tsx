@@ -15,17 +15,28 @@ interface CreateDropFromSongProps {
     title: string;
     artist: string;
   };
+  spotifyUrl?: string; // Add optional spotify URL prop
   onDropCreated?: () => void;
 }
 
-const CreateDropFromSong = ({ song, onDropCreated }: CreateDropFromSongProps) => {
+const CreateDropFromSong = ({ song, spotifyUrl: prefilledSpotifyUrl, onDropCreated }: CreateDropFromSongProps) => {
   const { user } = useAuth();
   const { moods } = useMoods();
   const [isOpen, setIsOpen] = useState(false);
   const [caption, setCaption] = useState('');
   const [selectedMoodId, setSelectedMoodId] = useState<string>('');
-  const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [spotifyUrl, setSpotifyUrl] = useState(prefilledSpotifyUrl || ''); // Initialize with prefilled URL
   const [isCreating, setIsCreating] = useState(false);
+
+  // Reset form when dialog opens and set prefilled URL
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      setSpotifyUrl(prefilledSpotifyUrl || '');
+      setCaption('');
+      setSelectedMoodId('');
+    }
+  };
 
   const handleCreateDrop = async () => {
     if (!user || !selectedMoodId || !spotifyUrl.trim()) {
@@ -74,7 +85,7 @@ const CreateDropFromSong = ({ song, onDropCreated }: CreateDropFromSongProps) =>
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -105,7 +116,10 @@ const CreateDropFromSong = ({ song, onDropCreated }: CreateDropFromSongProps) =>
               className="w-full bg-black/20 border-white/20 text-white placeholder-gray-400 rounded-md px-3 py-2 border"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Find "{song.title}" by {song.artist} on Spotify and paste the track URL here
+              {prefilledSpotifyUrl ? 
+                `Link from AI recommendation - you can edit if needed` :
+                `Find "${song.title}" by ${song.artist} on Spotify and paste the track URL here`
+              }
             </p>
           </div>
 

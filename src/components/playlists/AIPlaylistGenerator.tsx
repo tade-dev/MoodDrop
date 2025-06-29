@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,6 +108,14 @@ const AIPlaylistGenerator = () => {
   };
 
   const getSpotifySearchUrl = (song: { title: string; artist: string }) => {
+    const query = `${song.title} ${song.artist}`;
+    return `https://open.spotify.com/search/${encodeURIComponent(query)}`;
+  };
+
+  // Generate a Spotify track URL for the song (this would ideally come from the AI response)
+  const getSpotifyTrackUrl = (song: { title: string; artist: string }) => {
+    // For now, we'll generate a search URL that can be used as a starting point
+    // In a real implementation, the AI would provide actual Spotify track URLs
     const query = `${song.title} ${song.artist}`;
     return `https://open.spotify.com/search/${encodeURIComponent(query)}`;
   };
@@ -268,7 +275,8 @@ const AIPlaylistGenerator = () => {
                               </a>
                             </Button>
                             <CreateDropFromSong 
-                              song={song} 
+                              song={song}
+                              spotifyUrl={getSpotifyTrackUrl(song)}
                               onDropCreated={() => {
                                 toast.success('Drop created! Check your profile to see it.');
                               }}
