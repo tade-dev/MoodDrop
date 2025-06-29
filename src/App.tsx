@@ -19,6 +19,7 @@ import Auth from '@/pages/Auth';
 import Index from '@/pages/Index';
 import Playlists from '@/pages/Playlists';
 import CheckEmail from '@/pages/CheckEmail';
+import DropDetails from '@/pages/DropDetails';
 
 function App() {
   return (
@@ -64,6 +65,11 @@ function App() {
                 <Route path="/playlists" element={
                   <AppLayout>
                     <Playlists />
+                  </AppLayout>
+                } />
+                <Route path="/drop/:dropId" element={
+                  <AppLayout>
+                    <DropDetails />
                   </AppLayout>
                 } />
                 <Route path="/go-premium" element={<GoPremium />} />

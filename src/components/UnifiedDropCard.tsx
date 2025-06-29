@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import FollowButton from '@/components/FollowButton';
 import BookmarkButton from '@/components/BookmarkButton';
 import DropActionsMenu from '@/components/DropActionsMenu';
 import VibeThreads from '@/components/VibeThreads';
+import ShareDialog from '@/components/ShareDialog';
 
 interface Drop {
   id: string;
@@ -71,11 +72,13 @@ const UnifiedDropCard = ({
 }: UnifiedDropCardProps) => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [isVoting, setIsVoting] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [dropMoods, setDropMoods] = useState<any[]>([]);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Fetch moods if drop has mood_ids array
   useEffect(() => {
@@ -199,35 +202,20 @@ const UnifiedDropCard = ({
     }
   };
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/drop/${drop.id}`;
-    const shareText = `Check out "${drop.song_title}" by ${drop.artist_name} on MoodDrop!`;
+  const handleShare = () => {
+    setShowShareDialog(true);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation when clicking on interactive elements
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = target.closest('button') || 
+                                target.closest('a') || 
+                                target.closest('[role="button"]') ||
+                                target.closest('iframe');
     
-    if (navigator.share && isMobile) {
-      try {
-        await navigator.share({
-          title: `${drop.song_title} by ${drop.artist_name}`,
-          text: shareText,
-          url: shareUrl,
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
-      }
-    } else {
-      // Fallback to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({
-          title: "Link copied!",
-          description: "Drop link has been copied to your clipboard",
-        });
-      } catch (error) {
-        console.log('Error copying to clipboard:', error);
-        toast({
-          title: "Share",
-          description: shareText,
-        });
-      }
+    if (!isInteractiveElement) {
+      navigate(`/drop/${drop.id}`);
     }
   };
 
@@ -248,176 +236,190 @@ const UnifiedDropCard = ({
   };
 
   return (
-    <Card className={cn(
-      "bg-gradient-to-br from-gray-900/80 via-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/30 transition-all duration-300 overflow-hidden",
-      isMobile ? "mx-2" : "mx-0"
-    )}>
-      <div className={cn("space-y-4", isMobile ? "p-4" : "p-6")}>
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <Avatar className={cn("ring-2 ring-purple-400/30", isMobile ? "w-10 h-10" : "w-12 h-12")}>
-              <AvatarImage src={drop.profiles?.avatar_url} />
-              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold">
-                {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className={cn("font-semibold text-white truncate", isMobile ? "text-sm" : "text-base")}>
-                @{drop.profiles?.username || 'Unknown'}
-              </p>
-              <div className={cn("flex items-center space-x-2 text-gray-400", isMobile ? "text-xs" : "text-sm")}>
-                <span>{formatDistanceToNow(new Date(drop.created_at), { addSuffix: true })}</span>
-              </div>
-              
-              {/* Show follow button on mobile */}
-              {isMobile && showFollowButton && drop.user_id !== user?.id && (
-                <div className="mt-2">
-                  <FollowButton
-                    targetUserId={drop.user_id}
-                    isFollowing={isFollowing}
-                    onFollowChange={() => setIsFollowing(!isFollowing)}
-                    username={drop.profiles?.username}
-                  />
+    <>
+      <Card 
+        className={cn(
+          "bg-gradient-to-br from-gray-900/80 via-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 hover:border-purple-400/30 transition-all duration-300 overflow-hidden cursor-pointer",
+          isMobile ? "mx-2" : "mx-0"
+        )}
+        onClick={handleCardClick}
+      >
+        <div className={cn("space-y-4", isMobile ? "p-4" : "p-6")}>
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <Avatar className={cn("ring-2 ring-purple-400/30", isMobile ? "w-10 h-10" : "w-12 h-12")}>
+                <AvatarImage src={drop.profiles?.avatar_url} />
+                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold">
+                  {drop.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className={cn("font-semibold text-white truncate", isMobile ? "text-sm" : "text-base")}>
+                  @{drop.profiles?.username || 'Unknown'}
+                </p>
+                <div className={cn("flex items-center space-x-2 text-gray-400", isMobile ? "text-xs" : "text-sm")}>
+                  <span>{formatDistanceToNow(new Date(drop.created_at), { addSuffix: true })}</span>
                 </div>
+                
+                {/* Show follow button on mobile */}
+                {isMobile && showFollowButton && drop.user_id !== user?.id && (
+                  <div className="mt-2">
+                    <FollowButton
+                      targetUserId={drop.user_id}
+                      isFollowing={isFollowing}
+                      onFollowChange={() => setIsFollowing(!isFollowing)}
+                      username={drop.profiles?.username}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Desktop follow button */}
+              {!isMobile && showFollowButton && drop.user_id !== user?.id && (
+                <FollowButton
+                  targetUserId={drop.user_id}
+                  isFollowing={isFollowing}
+                  onFollowChange={() => setIsFollowing(!isFollowing)}
+                  username={drop.profiles?.username}
+                />
               )}
+              
+              <DropActionsMenu 
+                dropId={drop.id}
+                userId={drop.user_id}
+                onDropDeleted={onDropDeleted}
+              />
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* Desktop follow button */}
-            {!isMobile && showFollowButton && drop.user_id !== user?.id && (
-              <FollowButton
-                targetUserId={drop.user_id}
-                isFollowing={isFollowing}
-                onFollowChange={() => setIsFollowing(!isFollowing)}
-                username={drop.profiles?.username}
-              />
-            )}
-            
-            <DropActionsMenu 
-              dropId={drop.id}
-              userId={drop.user_id}
-              onDropDeleted={onDropDeleted}
-            />
-          </div>
-        </div>
+          {/* Multiple Mood Badges */}
+          {dropMoods.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {dropMoods.map((mood, index) => (
+                <Badge 
+                  key={mood.id || index}
+                  variant="secondary" 
+                  className={cn(
+                    "bg-purple-500/20 text-purple-300 border-purple-400/30",
+                    isMobile ? "text-xs px-2 py-1" : "text-sm px-3 py-1"
+                  )}
+                >
+                  {mood.emoji} {mood.name}
+                </Badge>
+              ))}
+            </div>
+          )}
 
-        {/* Multiple Mood Badges */}
-        {dropMoods.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {dropMoods.map((mood, index) => (
-              <Badge 
-                key={mood.id || index}
-                variant="secondary" 
+          {/* Caption */}
+          {drop.caption && (
+            <div className={cn("text-white leading-relaxed", isMobile ? "text-sm" : "text-base")}>
+              {drop.caption}
+            </div>
+          )}
+
+          {/* Spotify Player */}
+          <SpotifyPlayer
+            spotifyUrl={drop.spotify_url}
+            songTitle={drop.song_title}
+            artistName={drop.artist_name}
+          />
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
+            <div className={cn("flex items-center", isMobile ? "space-x-1" : "space-x-2")}>
+              {/* Fire Vote */}
+              <Button
+                variant="ghost"
+                size={isMobile ? "sm" : "default"}
+                onClick={() => handleVote('fire')}
+                disabled={isVoting}
                 className={cn(
-                  "bg-purple-500/20 text-purple-300 border-purple-400/30",
-                  isMobile ? "text-xs px-2 py-1" : "text-sm px-3 py-1"
+                  "text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 transition-all duration-300 hover:scale-110",
+                  hasUserVoted('fire') ? 'bg-orange-400/20' : '',
+                  isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
                 )}
               >
-                {mood.emoji} {mood.name}
-              </Badge>
-            ))}
-          </div>
-        )}
+                <Flame className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+                {getVoteCount('fire')}
+              </Button>
+              
+              {/* Heart Vote */}
+              <Button
+                variant="ghost"
+                size={isMobile ? "sm" : "default"}
+                onClick={() => handleVote('down')}
+                disabled={isVoting}
+                className={cn(
+                  "text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300 hover:scale-110",
+                  hasUserVoted('down') ? 'bg-red-400/20' : '',
+                  isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
+                )}
+              >
+                <Heart className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+                {getVoteCount('down')}
+              </Button>
+              
+              {/* Moon Vote */}
+              <Button
+                variant="ghost"
+                size={isMobile ? "sm" : "default"}
+                onClick={() => handleVote('chill')}
+                disabled={isVoting}
+                className={cn(
+                  "text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 transition-all duration-300 hover:scale-110",
+                  hasUserVoted('chill') ? 'bg-blue-400/20' : '',
+                  isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
+                )}
+              >
+                <Moon className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
+                {getVoteCount('chill')}
+              </Button>
 
-        {/* Caption */}
-        {drop.caption && (
-          <div className={cn("text-white leading-relaxed", isMobile ? "text-sm" : "text-base")}>
-            {drop.caption}
-          </div>
-        )}
+              {/* Comments */}
+              <VibeThreads
+                dropId={drop.id}
+                commentCount={commentCount}
+                onCommentCountChange={handleCommentCountChange}
+              />
+            </div>
 
-        {/* Spotify Player */}
-        <SpotifyPlayer
-          spotifyUrl={drop.spotify_url}
-          songTitle={drop.song_title}
-          artistName={drop.artist_name}
-        />
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/10">
-          <div className={cn("flex items-center", isMobile ? "space-x-1" : "space-x-2")}>
-            {/* Fire Vote */}
-            <Button
-              variant="ghost"
-              size={isMobile ? "sm" : "default"}
-              onClick={() => handleVote('fire')}
-              disabled={isVoting}
-              className={cn(
-                "text-orange-400 hover:text-orange-300 hover:bg-orange-400/10 transition-all duration-300 hover:scale-110",
-                hasUserVoted('fire') ? 'bg-orange-400/20' : '',
-                isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
-              )}
-            >
-              <Flame className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
-              {getVoteCount('fire')}
-            </Button>
-            
-            {/* Heart Vote */}
-            <Button
-              variant="ghost"
-              size={isMobile ? "sm" : "default"}
-              onClick={() => handleVote('down')}
-              disabled={isVoting}
-              className={cn(
-                "text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300 hover:scale-110",
-                hasUserVoted('down') ? 'bg-red-400/20' : '',
-                isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
-              )}
-            >
-              <Heart className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
-              {getVoteCount('down')}
-            </Button>
-            
-            {/* Moon Vote */}
-            <Button
-              variant="ghost"
-              size={isMobile ? "sm" : "default"}
-              onClick={() => handleVote('chill')}
-              disabled={isVoting}
-              className={cn(
-                "text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 transition-all duration-300 hover:scale-110",
-                hasUserVoted('chill') ? 'bg-blue-400/20' : '',
-                isMobile ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
-              )}
-            >
-              <Moon className={cn(isMobile ? "w-3 h-3" : "w-4 h-4", "mr-1")} />
-              {getVoteCount('chill')}
-            </Button>
-
-            {/* Comments */}
-            <VibeThreads
-              dropId={drop.id}
-              commentCount={commentCount}
-              onCommentCountChange={handleCommentCountChange}
-            />
-          </div>
-
-          <div className={cn("flex items-center", isMobile ? "space-x-1" : "space-x-2")}>
-            {/* Share Button */}
-            <Button
-              variant="ghost"
-              size={isMobile ? "sm" : "default"}
-              onClick={handleShare}
-              className={cn(
-                "text-gray-400 hover:text-green-300 hover:bg-green-400/10 transition-all duration-300 hover:scale-110",
-                isMobile ? "px-2 py-1" : "px-3 py-2"
-              )}
-            >
-              <Share2 className={cn(isMobile ? "w-3 h-3" : "w-4 h-4")} />
-            </Button>
-            
-            {/* Bookmark */}
-            <BookmarkButton 
-              dropId={drop.id}
-              isBookmarked={isBookmarked}
-              onBookmarkChange={handleBookmarkChange}
-            />
+            <div className={cn("flex items-center", isMobile ? "space-x-1" : "space-x-2")}>
+              {/* Share Button */}
+              <Button
+                variant="ghost"
+                size={isMobile ? "sm" : "default"}
+                onClick={handleShare}
+                className={cn(
+                  "text-gray-400 hover:text-green-300 hover:bg-green-400/10 transition-all duration-300 hover:scale-110",
+                  isMobile ? "px-2 py-1" : "px-3 py-2"
+                )}
+              >
+                <Share2 className={cn(isMobile ? "w-3 h-3" : "w-4 h-4")} />
+              </Button>
+              
+              {/* Bookmark */}
+              <BookmarkButton 
+                dropId={drop.id}
+                isBookmarked={isBookmarked}
+                onBookmarkChange={handleBookmarkChange}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Share Dialog */}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        dropId={drop.id}
+        songTitle={drop.song_title}
+        artistName={drop.artist_name}
+      />
+    </>
   );
 };
 
