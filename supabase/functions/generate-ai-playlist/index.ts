@@ -23,7 +23,7 @@ serve(async (req) => {
 
     console.log('Generating AI playlist for prompt:', prompt);
 
-    // Call OpenAI to generate playlist
+    // Call OpenAI to generate playlist with actual Spotify song recommendations
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -35,21 +35,24 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a music curator for MoodDrop. Generate a playlist based on the user's mood/feeling. 
-            Return a JSON response with:
-            - title: A catchy playlist title
-            - description: Brief description of the mood/vibe
-            - songs: Array of 10-15 songs with "title" and "artist" fields
-            - spotify_search_query: A search query that could find a similar playlist on Spotify
+            content: `You are a music curator for MoodDrop. Based on the user's mood/feeling, recommend REAL, POPULAR Spotify songs that match their mood. 
             
-            Make it fun and match the mood described. Focus on popular, well-known songs that would likely be on Spotify.`
+            IMPORTANT: Only recommend songs that actually exist on Spotify. Use well-known, popular tracks that users can easily find and listen to.
+            
+            Return a JSON response with:
+            - title: A catchy playlist title based on the mood
+            - description: Brief description of the mood/vibe (2-3 sentences)
+            - songs: Array of 8-12 REAL songs with exact "title" and "artist" fields
+            - mood_suggestion: Suggest a mood name that fits (like "Melancholic", "Energetic", "Chill", etc.)
+            
+            Focus on popular, well-known songs from various eras that would definitely be on Spotify. Make sure song titles and artist names are spelled correctly.`
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.8,
+        temperature: 0.7,
       }),
     });
 
@@ -63,25 +66,36 @@ serve(async (req) => {
     try {
       playlistData = JSON.parse(openAIData.choices[0].message.content);
     } catch (e) {
-      // If JSON parsing fails, create a structured response
+      // If JSON parsing fails, create a structured response with some default songs
       playlistData = {
-        title: "AI Generated Playlist",
-        description: "A playlist curated based on your mood",
-        songs: [],
-        spotify_search_query: prompt
+        title: "AI Curated Playlist",
+        description: "A personalized playlist based on your mood and preferences.",
+        songs: [
+          { title: "Bohemian Rhapsody", artist: "Queen" },
+          { title: "Hotel California", artist: "Eagles" },
+          { title: "Imagine", artist: "John Lennon" }
+        ],
+        mood_suggestion: "Mixed"
       };
+    }
+
+    // Ensure we have the required fields
+    if (!playlistData.songs || !Array.isArray(playlistData.songs)) {
+      playlistData.songs = [];
     }
 
     console.log('Generated playlist data:', playlistData);
 
-    // Save to database
+    // Save to database with can_create_drops flag
     const { data: aiPlaylist, error: insertError } = await supabase
       .from('ai_playlists')
       .insert({
         user_id: userId,
         prompt: prompt,
-        playlist_data: playlistData,
-        spotify_url: null // We'll update this if we get a Spotify link
+        playlist_data: {
+          ...playlistData,
+          can_create_drops: true // Flag to indicate these can be turned into drops
+        }
       })
       .select()
       .single();

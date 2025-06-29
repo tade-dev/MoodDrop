@@ -4,21 +4,28 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Music, Heart, Flame, Headphones, Loader2 } from 'lucide-react';
+import { Sparkles, Music, Heart, Flame, Headphones, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CreateDropFromSong from './CreateDropFromSong';
 
 interface AIPlaylist {
   id: string;
   prompt: string;
-  playlist_data: any; // Using any to match the Json type from Supabase
+  playlist_data: {
+    title?: string;
+    description?: string;
+    songs?: Array<{
+      title: string;
+      artist: string;
+    }>;
+    mood_suggestion?: string;
+    can_create_drops?: boolean;
+  };
   created_at: string;
   user_id: string;
-  profiles?: {
-    username: string;
-  };
 }
 
 const AIPlaylistGenerator = () => {
@@ -27,7 +34,7 @@ const AIPlaylistGenerator = () => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch AI playlists - removing the profiles join since the relation doesn't exist
+  // Fetch AI playlists
   const { data: aiPlaylists = [], isLoading } = useQuery({
     queryKey: ['ai-playlists'],
     queryFn: async () => {
@@ -89,7 +96,8 @@ const AIPlaylistGenerator = () => {
     }
   };
 
-  const getSpotifySearchUrl = (query: string) => {
+  const getSpotifySearchUrl = (song: { title: string; artist: string }) => {
+    const query = `${song.title} ${song.artist}`;
     return `https://open.spotify.com/search/${encodeURIComponent(query)}`;
   };
 
@@ -105,7 +113,7 @@ const AIPlaylistGenerator = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            placeholder="Describe how you're feeling... (e.g., 'Feeling sad, need chill piano music' or 'Pumped up for a workout, need high energy beats')"
+            placeholder="Tell me how you're feeling and I'll recommend songs... (e.g., 'I'm feeling sad, recommend 10 melancholic tracks' or 'I need high energy workout music')"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="bg-black/20 border-white/20 text-white placeholder-gray-400 min-h-[100px]"
@@ -119,12 +127,12 @@ const AIPlaylistGenerator = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating Your Playlist...
+                AI is curating your playlist...
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Generate AI Playlist
+                Generate Spotify Playlist
               </>
             )}
           </Button>
@@ -133,7 +141,7 @@ const AIPlaylistGenerator = () => {
 
       {/* Generated Playlists */}
       <div className="space-y-4">
-        <h3 className="text-xl font-bold text-white">Recent AI Playlists</h3>
+        <h3 className="text-xl font-bold text-white">Your AI Curated Playlists</h3>
         
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -163,28 +171,57 @@ const AIPlaylistGenerator = () => {
                       <p className="text-sm text-gray-300 mb-3">
                         {playlist.playlist_data?.description || 'A playlist curated based on your mood'}
                       </p>
+                      {playlist.playlist_data?.mood_suggestion && (
+                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-400/30 mb-3">
+                          Suggested mood: {playlist.playlist_data.mood_suggestion}
+                        </Badge>
+                      )}
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>by @{playlist.user_id}</span>
-                        <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
+                        <span>Generated on {new Date(playlist.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      AI Generated
+                      AI Curated
                     </Badge>
                   </div>
 
                   {/* Songs List */}
                   <div className="mb-4">
-                    <h5 className="text-sm font-medium text-white mb-2 flex items-center">
+                    <h5 className="text-sm font-medium text-white mb-3 flex items-center">
                       <Music className="w-4 h-4 mr-1" />
-                      Songs ({playlist.playlist_data?.songs?.length || 0})
+                      Recommended Songs ({playlist.playlist_data?.songs?.length || 0})
                     </h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                      {playlist.playlist_data?.songs?.map((song: any, index: number) => (
-                        <div key={index} className="bg-black/20 rounded-lg p-2">
-                          <p className="text-sm text-white font-medium truncate">{song.title}</p>
-                          <p className="text-xs text-gray-400 truncate">{song.artist}</p>
+                    <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
+                      {playlist.playlist_data?.songs?.map((song, index) => (
+                        <div key={index} className="bg-black/20 rounded-lg p-3 flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm text-white font-medium">{song.title}</p>
+                            <p className="text-xs text-gray-400">{song.artist}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              asChild
+                              className="text-green-400 hover:text-green-300 hover:bg-green-500/20 p-1"
+                            >
+                              <a
+                                href={getSpotifySearchUrl(song)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Find on Spotify"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </Button>
+                            <CreateDropFromSong 
+                              song={song} 
+                              onDropCreated={() => {
+                                toast.success('Drop created! Check your profile to see it.');
+                              }}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -221,22 +258,6 @@ const AIPlaylistGenerator = () => {
                         Chill
                       </Button>
                     </div>
-                    {playlist.playlist_data?.spotify_search_query && (
-                      <Button
-                        size="sm"
-                        asChild
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <a
-                          href={getSpotifySearchUrl(playlist.playlist_data.spotify_search_query)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Music className="w-4 h-4 mr-1" />
-                          Find on Spotify
-                        </a>
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
