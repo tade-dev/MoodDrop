@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -153,7 +154,7 @@ const PremiumToggle = () => {
             <Crown className="w-5 h-5 text-yellow-400" />
             <span>Premium Features Control</span>
             <Badge variant={settings?.premium_enabled ? "default" : "secondary"}>
-              {settings?.premium_enabled ? "ACTIVE" : "INACTIVE"}
+              {settings?.premium_enabled ? "RESTRICTED" : "FREE FOR ALL"}
             </Badge>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -168,9 +169,9 @@ const PremiumToggle = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-white font-medium">Global Premium Toggle</h3>
+              <h3 className="text-white font-medium">Premium Restrictions Toggle</h3>
               <p className="text-gray-400 text-sm">
-                Control premium features across the entire platform
+                Control whether premium features require a subscription
               </p>
             </div>
             <Switch
@@ -182,27 +183,27 @@ const PremiumToggle = () => {
           </div>
           
           <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-            <h4 className="text-white font-medium mb-2">Current Status:</h4>
+            <h4 className="text-white font-medium mb-2">Current Mode:</h4>
             <p className="text-gray-300 text-sm mb-3">
-              Premium features are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong> for all users.
+              Premium restrictions are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong>.
             </p>
             
-            <h4 className="text-white font-medium mb-2">Premium Access Logic:</h4>
+            <h4 className="text-white font-medium mb-2">How This Works:</h4>
             <ul className="text-gray-300 text-sm space-y-1">
-              <li>• <strong>Admin:</strong> Always has premium access</li>
-              <li>• <strong>When DISABLED:</strong> All users get free access to everything</li>
-              <li>• <strong>When ENABLED:</strong> Only subscribers + admin have premium features</li>
+              <li>• <strong>Admin:</strong> Always has full access to everything</li>
+              <li>• <strong>When DISABLED:</strong> All users get free access to premium features</li>
+              <li>• <strong>When ENABLED:</strong> Only subscribers + admin have premium access</li>
             </ul>
           </div>
 
           <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
             <h4 className="text-white font-medium mb-2">Premium Features Include:</h4>
             <ul className="text-gray-300 text-sm space-y-1">
-              <li>• Advanced mood filtering options</li>
-              <li>• Unlimited playlist creation</li>
-              <li>• Priority drop visibility</li>
-              <li>• Custom profile themes</li>
-              <li>• Enhanced analytics</li>
+              <li>• AI Playlist Generator</li>
+              <li>• Collaborative Playlists</li>
+              <li>• Unlimited drops per day</li>
+              <li>• Custom mood creation</li>
+              <li>• Advanced analytics</li>
             </ul>
           </div>
 

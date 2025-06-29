@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Music, Heart, Flame, Headphones, Loader2, ExternalLink } from 'lucide-react';
+import { Sparkles, Music, Heart, Flame, Headphones, Loader2, ExternalLink, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CreateDropFromSong from './CreateDropFromSong';
+import GoPremiumButton from '@/components/GoPremiumButton';
 
 interface AIPlaylist {
   id: string;
@@ -30,11 +32,12 @@ interface AIPlaylist {
 
 const AIPlaylistGenerator = () => {
   const { user } = useAuth();
+  const { isPremium } = useSubscription();
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch AI playlists
+  // Fetch AI playlists only if user is premium
   const { data: aiPlaylists = [], isLoading } = useQuery({
     queryKey: ['ai-playlists'],
     queryFn: async () => {
@@ -47,10 +50,19 @@ const AIPlaylistGenerator = () => {
       if (error) throw error;
       return data as AIPlaylist[];
     },
+    enabled: !!user && isPremium,
   });
 
   const handleGeneratePlaylist = async () => {
-    if (!user || !prompt.trim()) return;
+    if (!user || !isPremium) {
+      toast.error('🔒 Premium feature - Upgrade to MoodDrop+ to generate AI playlists!');
+      return;
+    }
+
+    if (!prompt.trim()) {
+      toast.error('Please describe your mood or what kind of playlist you want');
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -76,7 +88,7 @@ const AIPlaylistGenerator = () => {
   };
 
   const handleReaction = async (playlistId: string, reactionType: 'fire' | 'heart' | 'chill') => {
-    if (!user) return;
+    if (!user || !isPremium) return;
 
     try {
       const { error } = await supabase
@@ -101,6 +113,43 @@ const AIPlaylistGenerator = () => {
     return `https://open.spotify.com/search/${encodeURIComponent(query)}`;
   };
 
+  // Show premium gate if user is not premium
+  if (!isPremium) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gradient-to-br from-purple-900/30 via-pink-900/20 to-blue-900/30 backdrop-blur-sm border border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-2">
+              <Crown className="w-5 h-5 text-yellow-400" />
+              <span>AI Playlist Generator</span>
+              <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30">
+                Premium
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className="p-8">
+              <Sparkles className="w-16 h-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
+              <h3 className="text-xl font-bold text-white mb-3">
+                Unlock AI-Powered Playlists
+              </h3>
+              <p className="text-gray-300 mb-6">
+                Get personalized Spotify song recommendations based on your mood and create MoodDrops instantly with AI-curated playlists.
+              </p>
+              <ul className="text-gray-400 text-sm space-y-2 mb-6">
+                <li>✨ AI analyzes your mood and preferences</li>
+                <li>🎵 Real Spotify song recommendations</li>
+                <li>🚀 Instant MoodDrop creation from AI picks</li>
+                <li>💭 Unlimited playlist generations</li>
+              </ul>
+              <GoPremiumButton size="lg" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Generator Section */}
@@ -109,6 +158,9 @@ const AIPlaylistGenerator = () => {
           <CardTitle className="text-white flex items-center space-x-2">
             <Sparkles className="w-5 h-5 text-yellow-400" />
             <span>AI Playlist Generator</span>
+            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30">
+              Premium
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
