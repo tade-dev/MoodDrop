@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Music, Heart, Flame, Headphones, Loader2, ExternalLink, Crown } from 'lucide-react';
+import { Sparkles, Music, Heart, Flame, Headphones, Loader2, ExternalLink, Crown, Trash2, MoreVertical } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CreateDropFromSong from './CreateDropFromSong';
 import GoPremiumButton from '@/components/GoPremiumButton';
+import DeleteAIPlaylistModal from './DeleteAIPlaylistModal';
 
 interface AIPlaylist {
   id: string;
@@ -36,14 +38,20 @@ const AIPlaylistGenerator = () => {
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [playlistToDelete, setPlaylistToDelete] = useState<AIPlaylist | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch AI playlists only if user is premium
+  // Fetch AI playlists only for the current user if premium
   const { data: aiPlaylists = [], isLoading } = useQuery({
-    queryKey: ['ai-playlists'],
+    queryKey: ['ai-playlists', user?.id],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from('ai_playlists')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
       
@@ -78,12 +86,37 @@ const AIPlaylistGenerator = () => {
       
       toast.success('🎵 AI Playlist generated successfully!');
       setPrompt('');
-      queryClient.invalidateQueries({ queryKey: ['ai-playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['ai-playlists', user.id] });
     } catch (error) {
       console.error('Error generating playlist:', error);
       toast.error('Failed to generate playlist. Please try again.');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDeletePlaylist = async () => {
+    if (!playlistToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('ai_playlists')
+        .delete()
+        .eq('id', playlistToDelete.id)
+        .eq('user_id', user?.id); // Extra security check
+
+      if (error) throw error;
+
+      toast.success('Playlist deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['ai-playlists', user?.id] });
+      setDeleteModalOpen(false);
+      setPlaylistToDelete(null);
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      toast.error('Failed to delete playlist');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -232,10 +265,31 @@ const AIPlaylistGenerator = () => {
                         <span>Generated on {new Date(playlist.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      AI Curated
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        AI Curated
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-black/90 border-white/20">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setPlaylistToDelete(playlist);
+                              setDeleteModalOpen(true);
+                            }}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Playlist
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Songs List */}
@@ -319,6 +373,15 @@ const AIPlaylistGenerator = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Modal */}
+      <DeleteAIPlaylistModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        playlistTitle={playlistToDelete?.playlist_data?.title || 'AI Generated Playlist'}
+        onConfirm={handleDeletePlaylist}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
