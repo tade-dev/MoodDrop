@@ -2,13 +2,14 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Crown, Loader2, AlertTriangle, Shield } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle } from 'lucide-react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import PremiumToggleHeader from './PremiumToggleHeader';
+import PremiumToggleSwitch from './PremiumToggleSwitch';
+import PremiumFeatureInfo from './PremiumFeatureInfo';
 
 const PremiumToggle = () => {
   const { toast } = useToast();
@@ -120,7 +121,7 @@ const PremiumToggle = () => {
       <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-400/30">
         <CardContent className="p-6">
           <div className="flex items-center justify-center space-x-3">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+            <AlertTriangle className="w-6 h-6 animate-spin text-purple-400" />
             <span className="text-gray-400">Loading premium settings...</span>
           </div>
         </CardContent>
@@ -149,85 +150,18 @@ const PremiumToggle = () => {
   return (
     <TooltipProvider>
       <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-400/30">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center space-x-2">
-            <Crown className="w-5 h-5 text-yellow-400" />
-            <span>Premium Features Control</span>
-            <Badge variant={settings?.premium_enabled ? "default" : "secondary"}>
-              {settings?.premium_enabled ? "RESTRICTED MODE" : "FREE ACCESS MODE"}
-            </Badge>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Shield className="w-4 h-4 text-green-400 ml-auto" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Secure Admin Access</p>
-              </TooltipContent>
-            </Tooltip>
-          </CardTitle>
-        </CardHeader>
+        <PremiumToggleHeader premiumEnabled={settings?.premium_enabled} />
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-white font-medium">Enable Premium Restrictions</h3>
-              <p className="text-gray-400 text-sm">
-                When enabled, only subscribers and admin have premium access
-              </p>
-            </div>
-            <Switch
-              checked={settings?.premium_enabled || false}
-              onCheckedChange={handleToggle}
-              disabled={updatePremiumMutation.isPending}
-              className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500"
-            />
-          </div>
-          
-          <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-            <h4 className="text-white font-medium mb-2">Current Mode:</h4>
-            <p className="text-gray-300 text-sm mb-3">
-              Premium restrictions are currently <strong>{settings?.premium_enabled ? 'ENABLED' : 'DISABLED'}</strong>.
-            </p>
-            
-            <h4 className="text-white font-medium mb-2">How This Works:</h4>
-            <ul className="text-gray-300 text-sm space-y-1">
-              <li>• <strong>Admin:</strong> Always has full access to everything</li>
-              <li>• <strong>When DISABLED (Free Access):</strong> All users get premium features for free</li>
-              <li>• <strong>When ENABLED (Restricted):</strong> Only subscribers + admin have premium access</li>
-            </ul>
-            
-            <div className="mt-3 p-3 bg-blue-500/10 rounded border border-blue-400/20">
-              <p className="text-blue-300 text-sm">
-                <strong>Current Effect:</strong> {settings?.premium_enabled 
-                  ? 'Only paying subscribers and admin can use premium features'
-                  : 'Everyone gets free access to all premium features'
-                }
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 p-4 bg-black/20 rounded-lg border border-white/10">
-            <h4 className="text-white font-medium mb-2">Premium Features Include:</h4>
-            <ul className="text-gray-300 text-sm space-y-1">
-              <li>• AI Playlist Generator</li>
-              <li>• Collaborative Playlists</li>
-              <li>• Unlimited drops per day</li>
-              <li>• Custom mood creation</li>
-              <li>• Advanced analytics</li>
-            </ul>
-          </div>
-
-          {updatePremiumMutation.isPending && (
-            <div className="flex items-center justify-center p-2">
-              <Loader2 className="w-4 h-4 animate-spin text-purple-400 mr-2" />
-              <span className="text-gray-400 text-sm">Updating settings...</span>
-            </div>
-          )}
-
-          <div className="text-xs text-gray-500 border-t border-white/10 pt-3">
-            <p>Last updated: {settings?.updated_at ? new Date(settings.updated_at).toLocaleString() : 'Never'}</p>
-            <p>Authorized admin: akintadeseun816@gmail.com</p>
-            <p>Security: Protected by RLS policies</p>
-          </div>
+          <PremiumToggleSwitch
+            premiumEnabled={settings?.premium_enabled}
+            onToggle={handleToggle}
+            isUpdating={updatePremiumMutation.isPending}
+          />
+          <PremiumFeatureInfo
+            premiumEnabled={settings?.premium_enabled}
+            isUpdating={updatePremiumMutation.isPending}
+            lastUpdated={settings?.updated_at}
+          />
         </CardContent>
       </Card>
     </TooltipProvider>
